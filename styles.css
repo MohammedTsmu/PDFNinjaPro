@@ -24,7 +24,8 @@ body {
 .comment-section,
 .extract-section,
 .rotate-section,
-.reorder-section {
+.reorder-section,
+.background-section {
   margin-top: 20px;
   text-align: center;
 }
