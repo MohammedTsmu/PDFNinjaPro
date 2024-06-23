@@ -5,15 +5,18 @@ document.getElementById('upload-btn').addEventListener('click', function () {
     const fileInput = document.getElementById('pdf-upload');
     const file = fileInput.files[0];
     if (file) {
+        console.log('File selected:', file.name);
         const fileReader = new FileReader();
         fileReader.onload = function () {
             const typedarray = new Uint8Array(this.result);
             document.getElementById('spinner').style.display = 'block';
             pdfjsLib.getDocument(typedarray).promise.then(function (pdf) {
+                console.log('PDF loaded with', pdf.numPages, 'pages.');
                 const pdfPreview = document.getElementById('pdf-preview');
                 pdfPreview.innerHTML = '';
                 const numPages = pdf.numPages;
                 const loadPage = function (pageNumber) {
+                    console.log('Loading page', pageNumber);
                     pdf.getPage(pageNumber).then(function (page) {
                         const scale = 1.5;
                         const viewport = page.getViewport({ scale: scale });
@@ -31,18 +34,26 @@ document.getElementById('upload-btn').addEventListener('click', function () {
                             pageContainer.appendChild(canvas);
                             pageContainer.appendChild(pageNumberDiv);
                             pdfPreview.appendChild(pageContainer);
+                            console.log('Page', pageNumber, 'loaded.');
                             if (pageNumber < numPages) {
                                 loadPage(pageNumber + 1);
                             } else {
                                 document.getElementById('spinner').style.display = 'none';
+                                console.log('All pages loaded.');
                             }
                         });
+                    }).catch(function (error) {
+                        console.error('Error loading page', pageNumber, error);
                     });
                 };
                 loadPage(1);
+            }).catch(function (error) {
+                console.error('Error loading PDF:', error);
             });
         };
         fileReader.readAsArrayBuffer(file);
+    } else {
+        console.log('No file selected.');
     }
 });
 
@@ -54,6 +65,7 @@ document.getElementById('split-btn').addEventListener('click', async function ()
     const file = fileInput.files[0];
 
     if (chapterName && startPage && endPage && file) {
+        console.log('Splitting PDF from page', startPage, 'to page', endPage);
         const fileReader = new FileReader();
         fileReader.onload = async function () {
             const typedarray = new Uint8Array(this.result);
@@ -77,10 +89,14 @@ document.getElementById('split-btn').addEventListener('click', async function ()
                 const notification = document.getElementById('notification');
                 notification.innerHTML = `PDF split successfully. Download: ${chapterName}.pdf`;
                 notification.style.display = 'block';
+                console.log('PDF split and ready for download.');
             } else {
                 alert('Invalid page range.');
+                console.error('Invalid page range:', startPage, endPage);
             }
         };
         fileReader.readAsArrayBuffer(file);
+    } else {
+        console.log('Missing input for splitting PDF.');
     }
 });

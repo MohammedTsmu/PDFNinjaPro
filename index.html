@@ -10,20 +10,19 @@
 </head>
 
 <body>
-    <div class="container">
-        <h1 class="text-center">PDF Splitter App</h1>
-        <div class="upload-section text-center">
-            <input type="file" id="pdf-upload" accept="application/pdf">
-            <button id="upload-btn" class="btn btn-primary">Upload PDF</button>
-        </div>
-        <div id="spinner" class="spinner-border" role="status" style="display: none;">
-            <span class="visually-hidden">Loading...</span>
-        </div>
+    <div class="container my-4">
+        <h1 class="text-center mb-4">PDF Splitter App</h1>
         <div class="row">
-            <div class="col-md-8">
-                <div id="pdf-preview" class="pdf-preview row"></div>
+            <div class="col-md-6 mb-4">
+                <div class="upload-section text-center">
+                    <input type="file" id="pdf-upload" accept="application/pdf" class="form-control mb-2">
+                    <button id="upload-btn" class="btn btn-primary">Upload PDF</button>
+                </div>
+                <div id="spinner" class="spinner-border" role="status" style="display: none;">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-6 mb-4">
                 <div class="split-section">
                     <input type="text" id="chapter-name" placeholder="Chapter Name" class="form-control mb-2">
                     <input type="number" id="start-page" placeholder="From Page" class="form-control mb-2">
@@ -34,6 +33,7 @@
                 <div id="notification" class="notification"></div>
             </div>
         </div>
+        <div class="row" id="pdf-preview"></div>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
