@@ -30,6 +30,7 @@ document.getElementById('upload-btn').addEventListener('click', function () {
                         page.render({ canvasContext: context, viewport: viewport }).promise.then(function () {
                             const pageContainer = document.createElement('div');
                             pageContainer.classList.add('page-container');
+                            pageContainer.setAttribute('data-page-number', pageNumber); // تعيين رقم الصفحة
                             const pageNumberDiv = document.createElement('div');
                             pageNumberDiv.classList.add('page-number');
                             pageNumberDiv.textContent = pageNumber;

@@ -23,7 +23,8 @@ body {
 .convert-section,
 .comment-section,
 .extract-section,
-.rotate-section {
+.rotate-section,
+.reorder-section {
   margin-top: 20px;
   text-align: center;
 }
@@ -88,4 +89,12 @@ body {
   border-radius: 3px;
   font-size: 14px;
   font-weight: bold;
+}
+
+.sortable-ghost {
+  opacity: 0.4;
+}
+
+.sortable-chosen {
+  background-color: #d9edf7;
 }
