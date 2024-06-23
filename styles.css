@@ -22,7 +22,8 @@ body {
 .merge-section,
 .convert-section,
 .comment-section,
-.extract-section {
+.extract-section,
+.rotate-section {
   margin-top: 20px;
   text-align: center;
 }

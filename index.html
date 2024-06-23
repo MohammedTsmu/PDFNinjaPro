@@ -63,6 +63,17 @@
                     <button id="extract-btn" class="btn btn-dark">Extract Text from Selected Pages</button>
                 </div>
             </div>
+            <div class="col-md-6 mb-4">
+                <div class="rotate-section text-center">
+                    <h3>Rotate Pages</h3>
+                    <select id="rotate-angle" class="form-control mb-2">
+                        <option value="90">90 degrees</option>
+                        <option value="180">180 degrees</option>
+                        <option value="270">270 degrees</option>
+                    </select>
+                    <button id="rotate-btn" class="btn btn-secondary">Rotate Selected Pages</button>
+                </div>
+            </div>
         </div>
         <div class="row">
             <div id="pdf-preview" class="pdf-preview"></div>
@@ -76,6 +87,7 @@
     <script src="js/convert.js"></script>
     <script src="js/comment.js"></script>
     <script src="js/extract.js"></script>
+    <script src="js/rotate.js"></script>
 </body>
 
 </html>
