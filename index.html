@@ -50,6 +50,13 @@
                     <button id="convert-btn" class="btn btn-info">Convert Selected Pages to Images</button>
                 </div>
             </div>
+            <div class="col-md-6 mb-4">
+                <div class="comment-section text-center">
+                    <h3>Add Comments to PDF</h3>
+                    <textarea id="comment-text" class="form-control mb-2" placeholder="Enter your comment"></textarea>
+                    <button id="comment-btn" class="btn btn-warning">Add Comment to Selected Pages</button>
+                </div>
+            </div>
         </div>
         <div class="row">
             <div id="pdf-preview" class="pdf-preview"></div>
@@ -57,7 +64,11 @@
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-    <script src="script.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/split.js"></script>
+    <script src="js/merge.js"></script>
+    <script src="js/convert.js"></script>
+    <script src="js/comment.js"></script>
 </body>
 
 </html>
