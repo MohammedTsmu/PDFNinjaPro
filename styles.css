@@ -38,8 +38,7 @@ body {
 
 .pdf-preview {
   display: grid;
-  /* grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); */
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 20px;
   padding: 20px 0;
 }
@@ -55,12 +54,22 @@ body {
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
   border-radius: 5px;
   overflow: hidden;
-  width: 100%;
+  cursor: pointer;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.pdf-preview .page-container:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+}
+
+.pdf-preview .page-container.selected {
+  border: 2px solid #007bff;
+  background-color: #e9f5ff;
 }
 
 .pdf-preview canvas {
   width: 100%;
-  width: 120%;
   height: auto;
 }
 

@@ -1,6 +1,8 @@
 // تعيين مسار العامل الخاص بـ PDF.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js';
 
+let selectedPages = new Set();
+
 document.getElementById('upload-btn').addEventListener('click', function () {
     const fileInput = document.getElementById('pdf-upload');
     const file = fileInput.files[0];
@@ -33,6 +35,18 @@ document.getElementById('upload-btn').addEventListener('click', function () {
                             pageNumberDiv.textContent = pageNumber;
                             pageContainer.appendChild(canvas);
                             pageContainer.appendChild(pageNumberDiv);
+                            pageContainer.addEventListener('click', function () {
+                                if (selectedPages.has(pageNumber)) {
+                                    selectedPages.delete(pageNumber);
+                                    pageContainer.classList.remove('selected');
+                                } else {
+                                    selectedPages.add(pageNumber);
+                                    pageContainer.classList.add('selected');
+                                }
+                                console.log('Selected pages:', Array.from(selectedPages));
+                                document.getElementById('start-page').value = Math.min(...selectedPages) || '';
+                                document.getElementById('end-page').value = Math.max(...selectedPages) || '';
+                            });
                             pdfPreview.appendChild(pageContainer);
                             console.log('Page', pageNumber, 'loaded.');
                             if (pageNumber < numPages) {
