@@ -100,7 +100,17 @@ body {
 .sortable-chosen {
   background-color: #d9edf7;
 }
-/* .compress-section {
-  margin-top: 20px;
-  text-align: center;
-} */
+footer {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  background-color: #f8f9fa;
+  padding: 10px 0;
+  border-top: 1px solid #e7e7e7;
+}
+
+footer p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 14px;
+}
