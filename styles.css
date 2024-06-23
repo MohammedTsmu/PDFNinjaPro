@@ -38,7 +38,8 @@ body {
 
 .pdf-preview {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  /* grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); */
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
   gap: 20px;
   padding: 20px 0;
 }
@@ -54,11 +55,12 @@ body {
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
   border-radius: 5px;
   overflow: hidden;
-  max-width: 100%;
+  width: 100%;
 }
 
 .pdf-preview canvas {
   width: 100%;
+  width: 120%;
   height: auto;
 }
 
