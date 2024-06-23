@@ -17,8 +17,7 @@ body {
   text-align: center;
 }
 
-.upload-section,
-.split-section {
+.upload-section, .split-section, .merge-section {
   margin-top: 20px;
   text-align: center;
 }
