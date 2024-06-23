@@ -25,7 +25,8 @@ body {
 .extract-section,
 .rotate-section,
 .reorder-section,
-.background-section {
+.background-section,
+.password-section {
   margin-top: 20px;
   text-align: center;
 }
@@ -99,3 +100,7 @@ body {
 .sortable-chosen {
   background-color: #d9edf7;
 }
+/* .compress-section {
+  margin-top: 20px;
+  text-align: center;
+} */
