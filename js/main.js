@@ -4,120 +4,64 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
 let selectedPages = new Set();
 let pdf = null;
 let currentPage = 1;
-const pagesPerLoad = 5;
 let totalPages = 0;
-let viewMode = 'pagination';
+let viewMode = 'whole'; // تغيير القيمة الافتراضية إلى 'whole'
 
-document.getElementById('upload-btn').addEventListener('click', function () {
-    const fileInput = document.getElementById('pdf-upload');
-    const file = fileInput.files[0];
-    if (file) {
-        console.log('File selected:', file.name);
-        const fileReader = new FileReader();
+document.addEventListener('DOMContentLoaded', function () {
+    // إزالة أزرار التبديل بين طرق العرض
+    const viewPaginationBtn = document.getElementById('view-pagination');
+    const viewWholeBtn = document.getElementById('view-whole');
+    if (viewPaginationBtn) viewPaginationBtn.remove();
+    if (viewWholeBtn) viewWholeBtn.remove();
 
-        fileReader.onloadstart = function () {
-            document.getElementById('spinner').style.display = 'block';
-        };
+    // إعداد حدث التحميل للملف
+    document.getElementById('upload-btn').addEventListener('click', function () {
+        const fileInput = document.getElementById('pdf-upload');
+        const file = fileInput.files[0];
+        if (file) {
+            console.log('File selected:', file.name);
+            const fileReader = new FileReader();
 
-        fileReader.onloadend = function () {
-            document.getElementById('upload-notification').style.display = 'block';
-            setTimeout(() => {
-                document.getElementById('upload-notification').style.display = 'none';
-            }, 3000);
-        };
+            fileReader.onloadstart = function () {
+                document.getElementById('spinner').style.display = 'block';
+            };
 
-        fileReader.onload = function () {
-            const typedarray = new Uint8Array(this.result);
-            pdfjsLib.getDocument(typedarray).promise.then(function (loadedPdf) {
-                console.log('PDF loaded with', loadedPdf.numPages, 'pages.');
-                pdf = loadedPdf;
-                totalPages = pdf.numPages;
-                currentPage = 1; // reset to the first page on new upload
-                if (viewMode === 'pagination') {
-                    displayPages(currentPage, pagesPerLoad);
-                } else {
+            fileReader.onloadend = function () {
+                document.getElementById('upload-notification').style.display = 'block';
+                setTimeout(() => {
+                    document.getElementById('upload-notification').style.display = 'none';
+                }, 3000);
+            };
+
+            fileReader.onload = function () {
+                const typedarray = new Uint8Array(this.result);
+                pdfjsLib.getDocument(typedarray).promise.then(function (loadedPdf) {
+                    console.log('PDF loaded with', loadedPdf.numPages, 'pages.');
+                    pdf = loadedPdf;
+                    totalPages = pdf.numPages;
                     displayAllPages();
-                }
-                document.querySelector('.navigation-buttons').style.display = 'block'; // Ensure navigation buttons are displayed
-                document.getElementById('spinner').style.display = 'none';
-                document.getElementById('scroll-buttons').style.display = 'block'; // Ensure scroll buttons are displayed
-            }).catch(function (error) {
-                console.error('Error loading PDF:', error);
-                document.getElementById('spinner').style.display = 'none';
-            });
-        };
-        fileReader.readAsArrayBuffer(file);
-    } else {
-        console.log('No file selected.');
-    }
-});
-
-document.getElementById('view-pagination').addEventListener('click', function () {
-    viewMode = 'pagination';
-    if (pdf) {
-        currentPage = 1;
-        displayPages(currentPage, pagesPerLoad);
-        document.querySelector('.navigation-buttons').style.display = 'block';
-        document.getElementById('scroll-buttons').style.display = 'none';
-    }
-});
-
-document.getElementById('view-whole').addEventListener('click', function () {
-    viewMode = 'whole';
-    if (pdf) {
-        displayAllPages();
-        document.querySelector('.navigation-buttons').style.display = 'none';
-        document.getElementById('scroll-buttons').style.display = 'block';
-    }
-});
-
-document.getElementById('prev-btn').addEventListener('click', function () {
-    if (currentPage > 1) {
-        currentPage -= pagesPerLoad;
-        if (currentPage < 1) currentPage = 1;
-        displayPages(currentPage, pagesPerLoad);
-    }
-});
-
-document.getElementById('next-btn').addEventListener('click', function () {
-    if (currentPage + pagesPerLoad <= totalPages) {
-        currentPage += pagesPerLoad;
-        displayPages(currentPage, pagesPerLoad);
-    }
-});
-
-document.getElementById('go-to-page-btn').addEventListener('click', function () {
-    const pageNumberInput = document.getElementById('page-number-input');
-    let pageNumber = parseInt(pageNumberInput.value);
-    if (pageNumber >= 1 && pageNumber <= totalPages) {
-        currentPage = pageNumber;
-        displayPages(currentPage, pagesPerLoad);
-    } else {
-        alert('Page number out of range');
-    }
-});
-
-document.getElementById('scroll-top-btn').addEventListener('click', function () {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-});
-
-document.getElementById('scroll-bottom-btn').addEventListener('click', function () {
-    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-});
-
-function displayPages(startPage, pagesPerLoad) {
-    const pdfPreview = document.getElementById('pdf-preview');
-    pdfPreview.innerHTML = '';
-    document.getElementById('spinner').style.display = 'block'; // Show spinner
-    for (let i = 0; i < pagesPerLoad; i++) {
-        const pageNumber = startPage + i;
-        if (pageNumber > totalPages) {
-            document.getElementById('spinner').style.display = 'none'; // Hide spinner when done
-            break;
+                    document.getElementById('spinner').style.display = 'none';
+                    document.getElementById('scroll-buttons').style.display = 'block';
+                }).catch(function (error) {
+                    console.error('Error loading PDF:', error);
+                    document.getElementById('spinner').style.display = 'none';
+                });
+            };
+            fileReader.readAsArrayBuffer(file);
+        } else {
+            console.log('No file selected.');
         }
-        loadPage(pageNumber);
-    }
-}
+    });
+
+    // إعداد أحداث أزرار التمرير
+    document.getElementById('scroll-top-btn').addEventListener('click', function () {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    document.getElementById('scroll-bottom-btn').addEventListener('click', function () {
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    });
+});
 
 function displayAllPages() {
     const pdfPreview = document.getElementById('pdf-preview');
