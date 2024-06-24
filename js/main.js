@@ -2,6 +2,11 @@
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js';
 
 let selectedPages = new Set();
+let pdf = null;
+let currentPage = 1;
+const pagesPerLoad = 5;
+let totalPages = 0;
+let viewMode = 'pagination';
 
 document.getElementById('upload-btn').addEventListener('click', function () {
     const fileInput = document.getElementById('pdf-upload');
@@ -9,61 +14,36 @@ document.getElementById('upload-btn').addEventListener('click', function () {
     if (file) {
         console.log('File selected:', file.name);
         const fileReader = new FileReader();
+
+        fileReader.onloadstart = function () {
+            document.getElementById('spinner').style.display = 'block';
+        };
+
+        fileReader.onloadend = function () {
+            document.getElementById('upload-notification').style.display = 'block';
+            setTimeout(() => {
+                document.getElementById('upload-notification').style.display = 'none';
+            }, 3000);
+        };
+
         fileReader.onload = function () {
             const typedarray = new Uint8Array(this.result);
-            document.getElementById('spinner').style.display = 'block';
-            pdfjsLib.getDocument(typedarray).promise.then(function (pdf) {
-                console.log('PDF loaded with', pdf.numPages, 'pages.');
-                const pdfPreview = document.getElementById('pdf-preview');
-                pdfPreview.innerHTML = '';
-                const numPages = pdf.numPages;
-                const loadPage = function (pageNumber) {
-                    console.log('Loading page', pageNumber);
-                    pdf.getPage(pageNumber).then(function (page) {
-                        const scale = 1.5;
-                        const viewport = page.getViewport({ scale: scale });
-                        const canvas = document.createElement('canvas');
-                        const context = canvas.getContext('2d');
-                        canvas.height = viewport.height;
-                        canvas.width = viewport.width;
-
-                        page.render({ canvasContext: context, viewport: viewport }).promise.then(function () {
-                            const pageContainer = document.createElement('div');
-                            pageContainer.classList.add('page-container');
-                            pageContainer.setAttribute('data-page-number', pageNumber); // تعيين رقم الصفحة
-                            const pageNumberDiv = document.createElement('div');
-                            pageNumberDiv.classList.add('page-number');
-                            pageNumberDiv.textContent = pageNumber;
-                            pageContainer.appendChild(canvas);
-                            pageContainer.appendChild(pageNumberDiv);
-                            pageContainer.addEventListener('click', function () {
-                                if (selectedPages.has(pageNumber)) {
-                                    selectedPages.delete(pageNumber);
-                                    pageContainer.classList.remove('selected');
-                                } else {
-                                    selectedPages.add(pageNumber);
-                                    pageContainer.classList.add('selected');
-                                }
-                                console.log('Selected pages:', Array.from(selectedPages));
-                                document.getElementById('start-page').value = Math.min(...selectedPages) || '';
-                                document.getElementById('end-page').value = Math.max(...selectedPages) || '';
-                            });
-                            pdfPreview.appendChild(pageContainer);
-                            console.log('Page', pageNumber, 'loaded.');
-                            if (pageNumber < numPages) {
-                                loadPage(pageNumber + 1);
-                            } else {
-                                document.getElementById('spinner').style.display = 'none';
-                                console.log('All pages loaded.');
-                            }
-                        });
-                    }).catch(function (error) {
-                        console.error('Error loading page', pageNumber, error);
-                    });
-                };
-                loadPage(1);
+            pdfjsLib.getDocument(typedarray).promise.then(function (loadedPdf) {
+                console.log('PDF loaded with', loadedPdf.numPages, 'pages.');
+                pdf = loadedPdf;
+                totalPages = pdf.numPages;
+                currentPage = 1; // reset to the first page on new upload
+                if (viewMode === 'pagination') {
+                    displayPages(currentPage, pagesPerLoad);
+                } else {
+                    displayAllPages();
+                }
+                document.querySelector('.navigation-buttons').style.display = 'block'; // Ensure navigation buttons are displayed
+                document.getElementById('spinner').style.display = 'none';
+                document.getElementById('scroll-buttons').style.display = 'block'; // Ensure scroll buttons are displayed
             }).catch(function (error) {
                 console.error('Error loading PDF:', error);
+                document.getElementById('spinner').style.display = 'none';
             });
         };
         fileReader.readAsArrayBuffer(file);
@@ -71,3 +51,121 @@ document.getElementById('upload-btn').addEventListener('click', function () {
         console.log('No file selected.');
     }
 });
+
+document.getElementById('view-pagination').addEventListener('click', function () {
+    viewMode = 'pagination';
+    if (pdf) {
+        currentPage = 1;
+        displayPages(currentPage, pagesPerLoad);
+        document.querySelector('.navigation-buttons').style.display = 'block';
+        document.getElementById('scroll-buttons').style.display = 'none';
+    }
+});
+
+document.getElementById('view-whole').addEventListener('click', function () {
+    viewMode = 'whole';
+    if (pdf) {
+        displayAllPages();
+        document.querySelector('.navigation-buttons').style.display = 'none';
+        document.getElementById('scroll-buttons').style.display = 'block';
+    }
+});
+
+document.getElementById('prev-btn').addEventListener('click', function () {
+    if (currentPage > 1) {
+        currentPage -= pagesPerLoad;
+        if (currentPage < 1) currentPage = 1;
+        displayPages(currentPage, pagesPerLoad);
+    }
+});
+
+document.getElementById('next-btn').addEventListener('click', function () {
+    if (currentPage + pagesPerLoad <= totalPages) {
+        currentPage += pagesPerLoad;
+        displayPages(currentPage, pagesPerLoad);
+    }
+});
+
+document.getElementById('go-to-page-btn').addEventListener('click', function () {
+    const pageNumberInput = document.getElementById('page-number-input');
+    let pageNumber = parseInt(pageNumberInput.value);
+    if (pageNumber >= 1 && pageNumber <= totalPages) {
+        currentPage = pageNumber;
+        displayPages(currentPage, pagesPerLoad);
+    } else {
+        alert('Page number out of range');
+    }
+});
+
+document.getElementById('scroll-top-btn').addEventListener('click', function () {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+document.getElementById('scroll-bottom-btn').addEventListener('click', function () {
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+});
+
+function displayPages(startPage, pagesPerLoad) {
+    const pdfPreview = document.getElementById('pdf-preview');
+    pdfPreview.innerHTML = '';
+    document.getElementById('spinner').style.display = 'block'; // Show spinner
+    for (let i = 0; i < pagesPerLoad; i++) {
+        const pageNumber = startPage + i;
+        if (pageNumber > totalPages) {
+            document.getElementById('spinner').style.display = 'none'; // Hide spinner when done
+            break;
+        }
+        loadPage(pageNumber);
+    }
+}
+
+function displayAllPages() {
+    const pdfPreview = document.getElementById('pdf-preview');
+    pdfPreview.innerHTML = '';
+    document.getElementById('spinner').style.display = 'block'; // Show spinner
+    const loadPage = function (pageNumber) {
+        if (pageNumber > totalPages) {
+            document.getElementById('spinner').style.display = 'none'; // Hide spinner when done
+            return;
+        }
+        console.log('Loading page', pageNumber);
+        pdf.getPage(pageNumber).then(function (page) {
+            const scale = 1.5;
+            const viewport = page.getViewport({ scale: scale });
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+
+            page.render({ canvasContext: context, viewport: viewport }).promise.then(function () {
+                const pageContainer = document.createElement('div');
+                pageContainer.classList.add('page-container');
+                pageContainer.setAttribute('data-page-number', pageNumber);
+                const pageNumberDiv = document.createElement('div');
+                pageNumberDiv.classList.add('page-number');
+                pageNumberDiv.textContent = pageNumber;
+                pageContainer.appendChild(canvas);
+                pageContainer.appendChild(pageNumberDiv);
+                pageContainer.addEventListener('click', function () {
+                    if (selectedPages.has(pageNumber)) {
+                        selectedPages.delete(pageNumber);
+                        pageContainer.classList.remove('selected');
+                    } else {
+                        selectedPages.add(pageNumber);
+                        pageContainer.classList.add('selected');
+                    }
+                    console.log('Selected pages:', Array.from(selectedPages));
+                    document.getElementById('start-page').value = Math.min(...selectedPages) || '';
+                    document.getElementById('end-page').value = Math.max(...selectedPages) || '';
+                });
+                pdfPreview.appendChild(pageContainer);
+                console.log('Page', pageNumber, 'loaded.');
+                loadPage(pageNumber + 1);
+            });
+        }).catch(function (error) {
+            console.error('Error loading page', pageNumber, error);
+            loadPage(pageNumber + 1);
+        });
+    };
+    loadPage(1);
+}

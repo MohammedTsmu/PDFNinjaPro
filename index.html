@@ -7,54 +7,83 @@
     <title>PDF Tools App</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <meta name="description"
+        content="PDF Tools App - A comprehensive tool for splitting, merging, converting, commenting, extracting text, rotating, reordering, and adding backgrounds to PDF files.">
+    <meta name="keywords"
+        content="PDF tools, split PDF, merge PDF, convert PDF, comment PDF, extract text from PDF, rotate PDF, reorder PDF, add background to PDF">
+    <meta name="author" content="Mohammed Q. Sattar">
 </head>
 
 <body>
     <div class="container my-4">
-        <h1 class="text-center mb-4">PDF Tools App</h1>
+        <h1 class="text-center mb-4">PDF Tools App <i class="fas fa-file-pdf"></i></h1>
         <div class="row">
             <div class="col-md-12 mb-4">
                 <div class="upload-section text-center">
                     <input type="file" id="pdf-upload" accept="application/pdf" class="form-control mb-2">
-                    <button id="upload-btn" class="btn btn-primary">Upload PDF</button>
+                    <button id="upload-btn" class="btn btn-primary"><i class="fas fa-upload"></i> Upload PDF</button>
                 </div>
-                <div id="spinner" class="spinner-border" role="status" style="display: none;">
+                <div id="upload-notification" class="alert alert-success" role="alert" style="display: none;">
+                    <i class="fas fa-check-circle"></i> File uploaded successfully!
+                </div>
+                <div id="spinner" class="spinner-border text-primary" role="status" style="display: none;">
                     <span class="visually-hidden">Loading...</span>
                 </div>
             </div>
         </div>
+        <div class="view-options text-center mb-4">
+            <button id="view-pagination" class="btn btn-secondary"><i class="fas fa-list"></i> Pagination View</button>
+            <button id="view-whole" class="btn btn-secondary"><i class="fas fa-th-large"></i> Whole Pages View</button>
+        </div>
+        <div class="navigation-buttons text-center my-4" style="display: none;">
+            <button id="prev-btn" class="btn btn-primary"><i class="fas fa-arrow-left"></i> Previous</button>
+            <input type="number" id="page-number-input" class="form-control d-inline-block" style="width: 60px;" min="1"
+                value="1">
+            <button id="go-to-page-btn" class="btn btn-secondary"><i class="fas fa-search"></i> Go</button>
+            <button id="next-btn" class="btn btn-primary"><i class="fas fa-arrow-right"></i> Next</button>
+        </div>
         <ul class="nav nav-tabs" id="pdfToolsTab" role="tablist">
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="split-tab" data-bs-toggle="tab" data-bs-target="#split"
-                    type="button" role="tab" aria-controls="split" aria-selected="true">Split PDF</button>
+                    type="button" role="tab" aria-controls="split" aria-selected="true"><i class="fas fa-cut"></i> Split
+                    PDF</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="merge-tab" data-bs-toggle="tab" data-bs-target="#merge" type="button"
-                    role="tab" aria-controls="merge" aria-selected="false">Merge PDFs</button>
+                    role="tab" aria-controls="merge" aria-selected="false"><i class="fas fa-compress-alt"></i> Merge
+                    PDFs</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="convert-tab" data-bs-toggle="tab" data-bs-target="#convert" type="button"
-                    role="tab" aria-controls="convert" aria-selected="false">Convert PDF to Images</button>
+                    role="tab" aria-controls="convert" aria-selected="false"><i class="fas fa-image"></i> Convert PDF to
+                    Images</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="comment-tab" data-bs-toggle="tab" data-bs-target="#comment" type="button"
-                    role="tab" aria-controls="comment" aria-selected="false">Add Comments</button>
+                    role="tab" aria-controls="comment" aria-selected="false"><i class="fas fa-comment-alt"></i> Add
+                    Comments</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="extract-tab" data-bs-toggle="tab" data-bs-target="#extract" type="button"
-                    role="tab" aria-controls="extract" aria-selected="false">Extract Text</button>
+                    role="tab" aria-controls="extract" aria-selected="false"><i class="fas fa-file-alt"></i> Extract
+                    Text</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="rotate-tab" data-bs-toggle="tab" data-bs-target="#rotate" type="button"
-                    role="tab" aria-controls="rotate" aria-selected="false">Rotate Pages</button>
+                    role="tab" aria-controls="rotate" aria-selected="false"><i class="fas fa-sync-alt"></i> Rotate
+                    Pages</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="reorder-tab" data-bs-toggle="tab" data-bs-target="#reorder" type="button"
-                    role="tab" aria-controls="reorder" aria-selected="false">Reorder Pages</button>
+                    role="tab" aria-controls="reorder" aria-selected="false"><i class="fas fa-sort"></i> Reorder
+                    Pages</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="background-tab" data-bs-toggle="tab" data-bs-target="#background"
-                    type="button" role="tab" aria-controls="background" aria-selected="false">Add Backgrounds</button>
+                    type="button" role="tab" aria-controls="background" aria-selected="false"><i
+                        class="fas fa-fill-drip"></i> Add Backgrounds</button>
             </li>
         </ul>
         <div class="tab-content" id="pdfToolsTabContent">
@@ -65,9 +94,10 @@
                             <input type="text" id="chapter-name" placeholder="Chapter Name" class="form-control mb-2">
                             <input type="number" id="start-page" placeholder="From Page" class="form-control mb-2">
                             <input type="number" id="end-page" placeholder="To Page" class="form-control mb-2">
-                            <button id="split-btn" class="btn btn-success mb-2">Split PDF</button>
-                            <a id="download-link" href="#" class="btn btn-primary" style="display: none;">Download
-                                PDF</a>
+                            <button id="split-btn" class="btn btn-success mb-2"><i class="fas fa-cut"></i> Split
+                                PDF</button>
+                            <a id="download-link" href="#" class="btn btn-primary" style="display: none;"><i
+                                    class="fas fa-download"></i> Download PDF</a>
                         </div>
                         <div id="notification" class="notification"></div>
                     </div>
@@ -77,12 +107,13 @@
                 <div class="row">
                     <div class="col-md-6 mb-4">
                         <div class="merge-section text-center">
-                            <h3>Merge PDFs</h3>
+                            <h3><i class="fas fa-compress-alt"></i> Merge PDFs</h3>
                             <input type="file" id="pdf-merge-upload" accept="application/pdf" multiple
                                 class="form-control mb-2">
-                            <button id="merge-btn" class="btn btn-secondary">Merge PDFs</button>
-                            <a id="merge-download-link" href="#" class="btn btn-primary mt-2"
-                                style="display: none;">Download Merged PDF</a>
+                            <button id="merge-btn" class="btn btn-secondary"><i class="fas fa-compress-alt"></i> Merge
+                                PDFs</button>
+                            <a id="merge-download-link" href="#" class="btn btn-primary mt-2" style="display: none;"><i
+                                    class="fas fa-download"></i> Download Merged PDF</a>
                         </div>
                     </div>
                 </div>
@@ -91,8 +122,9 @@
                 <div class="row">
                     <div class="col-md-6 mb-4">
                         <div class="convert-section text-center">
-                            <h3>Convert PDF to Images</h3>
-                            <button id="convert-btn" class="btn btn-info">Convert Selected Pages to Images</button>
+                            <h3><i class="fas fa-image"></i> Convert PDF to Images</h3>
+                            <button id="convert-btn" class="btn btn-info"><i class="fas fa-image"></i> Convert Selected
+                                Pages to Images</button>
                         </div>
                     </div>
                 </div>
@@ -101,10 +133,11 @@
                 <div class="row">
                     <div class="col-md-6 mb-4">
                         <div class="comment-section text-center">
-                            <h3>Add Comments to PDF</h3>
+                            <h3><i class="fas fa-comment-alt"></i> Add Comments to PDF</h3>
                             <textarea id="comment-text" class="form-control mb-2"
                                 placeholder="Enter your comment"></textarea>
-                            <button id="comment-btn" class="btn btn-warning">Add Comment to Selected Pages</button>
+                            <button id="comment-btn" class="btn btn-warning"><i class="fas fa-comment-alt"></i> Add
+                                Comment to Selected Pages</button>
                         </div>
                     </div>
                 </div>
@@ -113,8 +146,9 @@
                 <div class="row">
                     <div class="col-md-6 mb-4">
                         <div class="extract-section text-center">
-                            <h3>Extract Text from PDF</h3>
-                            <button id="extract-btn" class="btn btn-dark">Extract Text from Selected Pages</button>
+                            <h3><i class="fas fa-file-alt"></i> Extract Text from PDF</h3>
+                            <button id="extract-btn" class="btn btn-dark"><i class="fas fa-file-alt"></i> Extract Text
+                                from Selected Pages</button>
                         </div>
                     </div>
                 </div>
@@ -123,13 +157,14 @@
                 <div class="row">
                     <div class="col-md-6 mb-4">
                         <div class="rotate-section text-center">
-                            <h3>Rotate Pages</h3>
+                            <h3><i class="fas fa-sync-alt"></i> Rotate Pages</h3>
                             <select id="rotate-angle" class="form-control mb-2">
                                 <option value="90">90 degrees</option>
                                 <option value="180">180 degrees</option>
                                 <option value="270">270 degrees</option>
                             </select>
-                            <button id="rotate-btn" class="btn btn-secondary">Rotate Selected Pages</button>
+                            <button id="rotate-btn" class="btn btn-secondary"><i class="fas fa-sync-alt"></i> Rotate
+                                Selected Pages</button>
                         </div>
                     </div>
                 </div>
@@ -138,8 +173,9 @@
                 <div class="row">
                     <div class="col-md-6 mb-4">
                         <div class="reorder-section text-center">
-                            <h3>Reorder Pages</h3>
-                            <button id="reorder-btn" class="btn btn-primary">Reorder Pages</button>
+                            <h3><i class="fas fa-sort"></i> Reorder Pages</h3>
+                            <button id="reorder-btn" class="btn btn-primary"><i class="fas fa-sort"></i> Reorder
+                                Pages</button>
                         </div>
                     </div>
                 </div>
@@ -148,25 +184,32 @@
                 <div class="row">
                     <div class="col-md-6 mb-4">
                         <div class="background-section text-center">
-                            <h3>Add Backgrounds</h3>
+                            <h3><i class="fas fa-fill-drip"></i> Add Backgrounds</h3>
                             <input type="color" id="background-color" class="form-control mb-2">
-                            <button id="background-btn" class="btn btn-info">Add Background to Selected Pages</button>
+                            <button id="background-btn" class="btn btn-info"><i class="fas fa-fill-drip"></i> Add
+                                Background to Selected Pages</button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="row">
-            <div id="pdf-preview" class="pdf-preview"></div>
+        <div id="pdf-preview" class="pdf-preview"></div>
+        <div id="scroll-buttons" class="text-center my-4" style="display: none;">
+            <button id="scroll-top-btn" class="btn btn-primary"><i class="fas fa-arrow-up"></i> Scroll to Top</button>
+            <button id="scroll-bottom-btn" class="btn btn-primary"><i class="fas fa-arrow-down"></i> Scroll to
+                Bottom</button>
         </div>
     </div>
+
     <footer class="text-center mt-4">
-        <p id="copyright"></p>
+        <p id="copyright">© 2024 Mohammed Q. Sattar Production</p>
     </footer>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.10.2/Sortable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/js/all.min.js"></script>
     <script src="js/main.js"></script>
     <script src="js/split.js"></script>
     <script src="js/merge.js"></script>
@@ -177,7 +220,6 @@
     <script src="js/reorder.js"></script>
     <script src="js/background.js"></script>
     <script src="js/password.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
     <script src="js/copyright.js"></script>
 </body>
 

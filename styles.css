@@ -114,3 +114,36 @@ footer p {
   color: #6c757d;
   font-size: 14px;
 }
+
+.page-container {
+  border: 1px solid #ccc;
+  margin-bottom: 10px;
+  padding: 10px;
+  position: relative;
+}
+
+.page-number {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background-color: rgba(255, 255, 255, 0.7);
+  padding: 5px;
+  border-radius: 5px;
+  font-size: 14px;
+  color: #333;
+}
+
+.selected {
+  border: 2px solid #007bff;
+}
+
+#scroll-buttons {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+}
+
+#scroll-buttons .btn {
+  margin: 5px 0;
+}
