@@ -19,7 +19,7 @@ PDF Tools App is a comprehensive web application designed to manage PDF files. T
 
 ## Demo
 
-Check out the [live demo]([https://your-live-demo-link.com](https://mohammedtsmu.github.io/PDFNinjaPro/) to see the app in action.
+Check out the [live demo]([https://mohammedtsmu.github.io/PDFNinjaPro/]) to see the app in action.
 
 ## Installation
 
