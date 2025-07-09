@@ -45,6 +45,7 @@
                     type="button" role="tab" aria-controls="split" aria-selected="true"><i class="fas fa-cut"></i> Split
                     PDF</button>
             </li>
+
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="merge-tab" data-bs-toggle="tab" data-bs-target="#merge" type="button"
                     role="tab" aria-controls="merge" aria-selected="false"><i class="fas fa-compress-alt"></i> Merge
@@ -93,6 +94,10 @@
                                 PDF</button>
                             <a id="download-link" href="#" class="btn btn-primary" style="display: none;"><i
                                     class="fas fa-download"></i> Download PDF</a>
+
+                            <button id="compress-btn" class="btn btn-warning mb-2">
+                                <i class="fas fa-compress"></i> Compress PDF
+                            </button>
                         </div>
                         <div id="notification" class="notification"></div>
                     </div>
@@ -207,6 +212,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/js/all.min.js"></script>
     <script src="js/main.js"></script>
     <script src="js/split.js"></script>
+    <script src="js/compress.js"></script>
     <script src="js/merge.js"></script>
     <script src="js/convert.js"></script>
     <script src="js/comment.js"></script>
