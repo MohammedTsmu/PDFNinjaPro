@@ -94,7 +94,9 @@ document.addEventListener('DOMContentLoaded', function () {
             // Update Global State
             selectedPages = newSelected;
 
-            // Update UI
+            // Update UI (but don't overwrite input self to avoid cursor jumps!)
+            // We duplicate UI update logic here or extract it to updateVisualsOnly() 
+            // Simpler: Just copy specific UI update code here
             document.querySelectorAll('.page-container').forEach(container => {
                 const num = parseInt(container.getAttribute('data-page-number'));
                 if (selectedPages.has(num)) {
@@ -107,9 +109,74 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
+function updateSelectionUI() {
+    // Sync UI with selectedPages Set
+    document.querySelectorAll('.page-container').forEach(container => {
+        const num = parseInt(container.getAttribute('data-page-number'));
+        if (selectedPages.has(num)) {
+            container.classList.add('selected');
+        } else {
+            container.classList.remove('selected');
+        }
+    });
+
+    // Sync Input with Range Formatting
+    const rangesInput = document.getElementById('page-ranges');
+    if (rangesInput) {
+        const sorted = Array.from(selectedPages).sort((a, b) => a - b);
+        let ranges = [];
+        for (let i = 0; i < sorted.length; i++) {
+            const start = sorted[i];
+            let end = start;
+            while (i + 1 < sorted.length && sorted[i + 1] === end + 1) {
+                end++;
+                i++;
+            }
+            if (start === end) ranges.push(start);
+            else ranges.push(`${start}-${end}`);
+        }
+        rangesInput.value = ranges.join(', ');
+    }
+}
+
+document.getElementById('sel-all').addEventListener('click', () => {
+    for (let i = 1; i <= totalPages; i++) selectedPages.add(i);
+    updateSelectionUI();
+});
+
+document.getElementById('sel-none').addEventListener('click', () => {
+    selectedPages.clear();
+    updateSelectionUI();
+});
+
+document.getElementById('sel-inverse').addEventListener('click', () => {
+    for (let i = 1; i <= totalPages; i++) {
+        if (selectedPages.has(i)) selectedPages.delete(i);
+        else selectedPages.add(i);
+    }
+    updateSelectionUI();
+});
+
+document.getElementById('sel-odd').addEventListener('click', () => {
+    selectedPages.clear();
+    for (let i = 1; i <= totalPages; i += 2) selectedPages.add(i);
+    updateSelectionUI();
+});
+
+document.getElementById('sel-even').addEventListener('click', () => {
+    selectedPages.clear();
+    for (let i = 2; i <= totalPages; i += 2) selectedPages.add(i);
+    updateSelectionUI();
+});
+
 function displayAllPages() {
     const pdfPreview = document.getElementById('pdf-preview');
     pdfPreview.innerHTML = '';
+
+    // Show Toolbar
+    document.getElementById('selection-toolbar').classList.remove('hidden');
+    document.getElementById('selection-toolbar').style.display = 'flex';
+
     document.getElementById('spinner').classList.remove('hidden'); // Show spinner
     const loadPage = function (pageNumber) {
         if (pageNumber > totalPages) {
@@ -137,21 +204,11 @@ function displayAllPages() {
                 pageContainer.addEventListener('click', function () {
                     if (selectedPages.has(pageNumber)) {
                         selectedPages.delete(pageNumber);
-                        pageContainer.classList.remove('selected');
                     } else {
                         selectedPages.add(pageNumber);
-                        pageContainer.classList.add('selected');
                     }
                     console.log('Selected pages:', Array.from(selectedPages));
-
-                    // Sync with 'page-ranges' input if it exists
-                    const rangesInput = document.getElementById('page-ranges');
-                    if (rangesInput) {
-                        const sorted = Array.from(selectedPages).sort((a, b) => a - b);
-                        rangesInput.value = sorted.join(', ');
-                    }
-
-                    // Old logic removed
+                    updateSelectionUI();
                 });
                 pdfPreview.appendChild(pageContainer);
                 console.log('Page', pageNumber, 'loaded.');

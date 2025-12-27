@@ -205,6 +205,17 @@
 
             </section>
 
+            <!-- Selection Toolbar -->
+            <div id="selection-toolbar" class="selection-toolbar hidden"
+                style="margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                <span class="text-muted" style="margin-right: 10px;">Quick Select:</span>
+                <button id="sel-all" class="btn btn-sm btn-dark">All</button>
+                <button id="sel-none" class="btn btn-sm btn-dark">None</button>
+                <button id="sel-inverse" class="btn btn-sm btn-dark">Inverse</button>
+                <button id="sel-odd" class="btn btn-sm btn-dark">Odd</button>
+                <button id="sel-even" class="btn btn-sm btn-dark">Even</button>
+            </div>
+
             <!-- Preview Area -->
             <div id="pdf-preview" class="pdf-preview">
                 <!-- Pages will be injected here via JS -->
