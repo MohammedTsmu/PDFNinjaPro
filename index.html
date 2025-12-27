@@ -110,6 +110,13 @@
                         <h3><i class="fas fa-cut"></i> Split PDF</h3>
                         <p class="text-muted" style="font-size: 0.9rem; margin-top: 5px;">Select pages in the preview
                             below to split them, or enter a range.</p>
+                        <button id="split-by-bookmarks-btn" class="btn btn-sm btn-info hidden" style="margin-top: 5px;">
+                            <i class="fas fa-bookmark"></i> Detected Chapters available! Click to load.
+                        </button>
+                        <div id="chapter-list" class="hidden"
+                            style="margin-top: 10px; max-height: 200px; overflow-y: auto; background: rgba(0,0,0,0.1); padding: 10px; border-radius: 8px;">
+                            <!-- Chapters injected here -->
+                        </div>
                     </div>
                     <div class="row" style="display: flex; gap: 20px; flex-wrap: wrap;">
                         <input type="text" id="chapter-name" placeholder="Chapter Name (Optional)" class="form-control"

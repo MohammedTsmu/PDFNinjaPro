@@ -41,6 +41,24 @@ document.addEventListener('DOMContentLoaded', function () {
                         console.log('PDF loaded with', loadedPdf.numPages, 'pages.');
                         pdf = loadedPdf;
                         totalPages = pdf.numPages;
+
+                        // Expose for other scripts
+                        window.pdfDocLoaded = pdf;
+                        window.totalPageCount = totalPages;
+
+                        // Check for bookmarks (chapters)
+                        pdf.getOutline().then(outline => {
+                            if (outline && outline.length > 0) {
+                                console.log('Bookmarks found:', outline);
+                                window.pdfOutline = outline;
+                                // Show "Split by Bookmark" button if hidden
+                                const btn = document.getElementById('split-by-bookmarks-btn');
+                                if (btn) btn.classList.remove('hidden');
+                            } else {
+                                window.pdfOutline = null;
+                            }
+                        });
+
                         displayAllPages();
                         document.getElementById('spinner').classList.add('hidden');
                         document.getElementById('scroll-buttons').style.display = 'flex';
