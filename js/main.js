@@ -15,43 +15,46 @@ document.addEventListener('DOMContentLoaded', function () {
     if (viewWholeBtn) viewWholeBtn.remove();
 
     // إعداد حدث التحميل للملف
-    document.getElementById('upload-btn').addEventListener('click', function () {
-        const fileInput = document.getElementById('pdf-upload');
-        const file = fileInput.files[0];
-        if (file) {
-            console.log('File selected:', file.name);
-            const fileReader = new FileReader();
+    const fileInput = document.getElementById('pdf-upload');
+    if (fileInput) {
+        fileInput.addEventListener('change', function () {
+            const file = this.files[0];
+            if (file) {
+                console.log('File selected:', file.name);
+                const fileReader = new FileReader();
 
-            fileReader.onloadstart = function () {
-                document.getElementById('spinner').style.display = 'block';
-            };
+                fileReader.onloadstart = function () {
+                    document.getElementById('spinner').classList.remove('hidden');
+                };
 
-            fileReader.onloadend = function () {
-                document.getElementById('upload-notification').style.display = 'block';
-                setTimeout(() => {
-                    document.getElementById('upload-notification').style.display = 'none';
-                }, 3000);
-            };
+                fileReader.onloadend = function () {
+                    const notif = document.getElementById('upload-notification');
+                    notif.classList.remove('hidden');
+                    setTimeout(() => {
+                        notif.classList.add('hidden');
+                    }, 3000);
+                };
 
-            fileReader.onload = function () {
-                const typedarray = new Uint8Array(this.result);
-                pdfjsLib.getDocument(typedarray).promise.then(function (loadedPdf) {
-                    console.log('PDF loaded with', loadedPdf.numPages, 'pages.');
-                    pdf = loadedPdf;
-                    totalPages = pdf.numPages;
-                    displayAllPages();
-                    document.getElementById('spinner').style.display = 'none';
-                    document.getElementById('scroll-buttons').style.display = 'block';
-                }).catch(function (error) {
-                    console.error('Error loading PDF:', error);
-                    document.getElementById('spinner').style.display = 'none';
-                });
-            };
-            fileReader.readAsArrayBuffer(file);
-        } else {
-            console.log('No file selected.');
-        }
-    });
+                fileReader.onload = function () {
+                    const typedarray = new Uint8Array(this.result);
+                    pdfjsLib.getDocument(typedarray).promise.then(function (loadedPdf) {
+                        console.log('PDF loaded with', loadedPdf.numPages, 'pages.');
+                        pdf = loadedPdf;
+                        totalPages = pdf.numPages;
+                        displayAllPages();
+                        document.getElementById('spinner').classList.add('hidden');
+                        document.getElementById('scroll-buttons').style.display = 'flex';
+                    }).catch(function (error) {
+                        console.error('Error loading PDF:', error);
+                        document.getElementById('spinner').classList.add('hidden');
+                    });
+                };
+                fileReader.readAsArrayBuffer(file);
+            } else {
+                console.log('No file selected.');
+            }
+        });
+    }
 
     // إعداد أحداث أزرار التمرير
     document.getElementById('scroll-top-btn').addEventListener('click', function () {
@@ -61,15 +64,56 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('scroll-bottom-btn').addEventListener('click', function () {
         window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     });
+
+    // Reverse Sync: Input -> Visual Selection
+    const rangesInput = document.getElementById('page-ranges');
+    if (rangesInput) {
+        rangesInput.addEventListener('input', function () {
+            const val = this.value;
+            const newSelected = new Set();
+
+            if (val) {
+                const parts = val.split(',');
+                parts.forEach(part => {
+                    const range = part.trim().split('-');
+                    if (range.length === 2) {
+                        const start = parseInt(range[0]);
+                        const end = parseInt(range[1]);
+                        if (!isNaN(start) && !isNaN(end)) {
+                            const min = Math.min(start, end);
+                            const max = Math.max(start, end);
+                            for (let i = min; i <= max; i++) newSelected.add(i);
+                        }
+                    } else if (range.length === 1) {
+                        const page = parseInt(range[0]);
+                        if (!isNaN(page)) newSelected.add(page);
+                    }
+                });
+            }
+
+            // Update Global State
+            selectedPages = newSelected;
+
+            // Update UI
+            document.querySelectorAll('.page-container').forEach(container => {
+                const num = parseInt(container.getAttribute('data-page-number'));
+                if (selectedPages.has(num)) {
+                    container.classList.add('selected');
+                } else {
+                    container.classList.remove('selected');
+                }
+            });
+        });
+    }
 });
 
 function displayAllPages() {
     const pdfPreview = document.getElementById('pdf-preview');
     pdfPreview.innerHTML = '';
-    document.getElementById('spinner').style.display = 'block'; // Show spinner
+    document.getElementById('spinner').classList.remove('hidden'); // Show spinner
     const loadPage = function (pageNumber) {
         if (pageNumber > totalPages) {
-            document.getElementById('spinner').style.display = 'none'; // Hide spinner when done
+            document.getElementById('spinner').classList.add('hidden'); // Hide spinner when done
             return;
         }
         console.log('Loading page', pageNumber);
@@ -99,8 +143,15 @@ function displayAllPages() {
                         pageContainer.classList.add('selected');
                     }
                     console.log('Selected pages:', Array.from(selectedPages));
-                    document.getElementById('start-page').value = Math.min(...selectedPages) || '';
-                    document.getElementById('end-page').value = Math.max(...selectedPages) || '';
+
+                    // Sync with 'page-ranges' input if it exists
+                    const rangesInput = document.getElementById('page-ranges');
+                    if (rangesInput) {
+                        const sorted = Array.from(selectedPages).sort((a, b) => a - b);
+                        rangesInput.value = sorted.join(', ');
+                    }
+
+                    // Old logic removed
                 });
                 pdfPreview.appendChild(pageContainer);
                 console.log('Page', pageNumber, 'loaded.');

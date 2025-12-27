@@ -21,7 +21,7 @@ document.getElementById('merge-btn').addEventListener('click', async function ()
                     const mergeDownloadLink = document.getElementById('merge-download-link');
                     mergeDownloadLink.href = url;
                     mergeDownloadLink.download = `merged.pdf`;
-                    mergeDownloadLink.style.display = 'inline';
+                    mergeDownloadLink.style.display = 'inline-flex';
                     console.log('PDFs merged and ready for download.');
                 }
             };
