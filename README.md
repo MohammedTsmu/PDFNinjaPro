@@ -27,12 +27,12 @@ To run this project locally, follow these steps:
 
 1. **Clone the repository**:
     ```sh
-    git clone https://github.com/yourusername/pdf-tools-app.git
+    git clone https://github.com/MohammedTsmu/PDFNinjaPro.git
     ```
 
 2. **Navigate to the project directory**:
     ```sh
-    cd pdf-tools-app
+    cd PDFNinjaPro
     ```
 
 3. **Open `index.html` in your browser**.

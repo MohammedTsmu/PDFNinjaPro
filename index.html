@@ -23,8 +23,15 @@
 </head>
 
 <body>
-    <div class="container my-4">
-        <h1 class="text-center mb-4">PDF Ninja Pro<i class="fas fa-file-pdf"></i></h1>
+    <div class="container">
+        <h1 class="text-center">PDF Ninja Pro</h1>
+        <div class="upload-section text-center">
+            <input type="file" id="pdf-upload" accept="application/pdf">
+            <button id="upload-btn" class="btn btn-primary">Upload PDF</button>
+        </div>
+        <div id="spinner" class="spinner-border" role="status" style="display: none;">
+            <span class="visually-hidden">Loading...</span>
+        </div>
         <div class="row">
             <div class="col-md-12 mb-4">
                 <div class="upload-section text-center">
