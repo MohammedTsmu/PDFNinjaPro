@@ -223,12 +223,27 @@ function displayAllPages() {
     spinner.innerHTML = '<div class="spinner"></div><p style="margin-top:10px; color:white;">Loading pages...</p>';
     document.body.style.overflow = 'hidden'; // Lock scrolling
 
-    const loadPage = function (pageNumber) {
-        if (pageNumber > totalPages) {
-            document.getElementById('spinner').classList.add('hidden'); // Hide spinner when done
+    // Concurrency settings
+    const MAX_CONCURRENT_RENDERS = 4; // Safely render 4 pages at once
+    let pagesRendered = 0;
+    let nextPageToLoad = 1;
+
+    // Init progress text immediately
+    const spinnerText = document.querySelector('#spinner p');
+    if (spinnerText) spinnerText.textContent = `Loading pages... 0%`;
+
+    const updateProgress = () => {
+        pagesRendered++;
+        // Update progress text
+        const pct = Math.round((pagesRendered / totalPages) * 100);
+        if (spinnerText) spinnerText.textContent = `Loading pages... ${pct}%`;
+
+        // Check completion
+        if (pagesRendered >= totalPages) {
+            document.getElementById('spinner').classList.add('hidden');
             document.body.style.overflow = 'auto'; // Unlock scrolling
             document.getElementById('upload-notification').classList.add('hidden');
-            // Show success toast
+
             const success = document.createElement('div');
             success.className = 'notification';
             success.innerHTML = '<i class="fas fa-check-circle"></i> PDF Ready!';
@@ -236,54 +251,92 @@ function displayAllPages() {
             setTimeout(() => success.remove(), 3000);
 
             document.getElementById('scroll-buttons').style.display = 'flex';
-            return;
+        } else {
+            // Try to pick up next task
+            startNextRender();
         }
+    };
 
-        // Update progress text
-        const pct = Math.round((pageNumber / totalPages) * 100);
-        const spinnerText = document.querySelector('#spinner p');
-        if (spinnerText) spinnerText.textContent = `Loading pages... ${pct}%`;
-        console.log('Loading page', pageNumber);
-        pdf.getPage(pageNumber).then(function (page) {
-            const scale = 1.5;
+    const loadSinglePage = (pageNumber) => {
+        return pdf.getPage(pageNumber).then(function (page) {
+            // Low-res thumbnail for memory efficiency
+            const scale = 0.3;
             const viewport = page.getViewport({ scale: scale });
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
             canvas.height = viewport.height;
             canvas.width = viewport.width;
 
-            page.render({ canvasContext: context, viewport: viewport }).promise.then(function () {
-                const pageContainer = document.createElement('div');
-                pageContainer.classList.add('page-container');
-                pageContainer.setAttribute('data-page-number', pageNumber);
-                const pageNumberDiv = document.createElement('div');
-                pageNumberDiv.classList.add('page-number');
-                pageNumberDiv.textContent = pageNumber;
+            const renderContext = {
+                canvasContext: context,
+                viewport: viewport
+            };
 
-                // Fix for Large PDFs: Check selection state on render
+            const pageContainer = document.createElement('div');
+            pageContainer.classList.add('page-container');
+            pageContainer.style.order = pageNumber;
+            pageContainer.setAttribute('data-page-number', pageNumber);
+
+            const pageNumberDiv = document.createElement('div');
+            pageNumberDiv.classList.add('page-number');
+            pageNumberDiv.textContent = pageNumber;
+
+            if (typeof selectedPages !== 'undefined' && selectedPages.has(pageNumber)) {
+                pageContainer.classList.add('selected');
+            }
+
+            pageContainer.appendChild(canvas);
+            pageContainer.appendChild(pageNumberDiv);
+
+            pageContainer.addEventListener('click', function () {
+                if (typeof selectedPages === 'undefined') return;
                 if (selectedPages.has(pageNumber)) {
-                    pageContainer.classList.add('selected');
+                    selectedPages.delete(pageNumber);
+                } else {
+                    selectedPages.add(pageNumber);
                 }
-
-                pageContainer.appendChild(canvas);
-                pageContainer.appendChild(pageNumberDiv);
-                pageContainer.addEventListener('click', function () {
-                    if (selectedPages.has(pageNumber)) {
-                        selectedPages.delete(pageNumber);
-                    } else {
-                        selectedPages.add(pageNumber);
-                    }
-                    console.log('Selected pages:', Array.from(selectedPages));
-                    updateSelectionUI();
-                });
-                pdfPreview.appendChild(pageContainer);
-                console.log('Page', pageNumber, 'loaded.');
-                loadPage(pageNumber + 1);
+                if (typeof updateSelectionUI === 'function') updateSelectionUI();
+                else {
+                    if (selectedPages.has(pageNumber)) pageContainer.classList.add('selected');
+                    else pageContainer.classList.remove('selected');
+                }
             });
+
+            pdfPreview.appendChild(pageContainer);
+
+            return page.render(renderContext).promise;
         }).catch(function (error) {
-            console.error('Error loading page', pageNumber, error);
-            loadPage(pageNumber + 1);
+            console.error('Error loading page', pageNumber);
+            if (spinnerText) spinnerText.innerText = `Error on page ${pageNumber}. Retrying...`;
+            // Even if error, resolve to keep queue moving?
+            // If we throw, the catch block in startNextRender calls updateProgress, which is good.
+            throw error;
         });
     };
-    loadPage(1);
+
+    const startNextRender = () => {
+        if (nextPageToLoad > totalPages) return;
+
+        const p = nextPageToLoad;
+        nextPageToLoad++;
+
+        loadSinglePage(p).then(() => {
+            updateProgress();
+        }).catch(() => {
+            updateProgress(); // Mark as done/skipped to prevent hang
+        });
+    };
+
+    // Kickoff initial batch
+    const initialBatch = Math.min(totalPages, MAX_CONCURRENT_RENDERS);
+    if (initialBatch > 0) {
+        for (let i = 0; i < initialBatch; i++) {
+            startNextRender();
+        }
+    } else {
+        // Handle 0 pages edge case (corrupt PDF?)
+        document.getElementById('spinner').classList.add('hidden');
+        document.body.style.overflow = 'auto';
+        alert("PDF loaded but appears to have 0 pages.");
+    }
 }
