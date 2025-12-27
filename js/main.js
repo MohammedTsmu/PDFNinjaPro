@@ -43,10 +43,33 @@ document.addEventListener('DOMContentLoaded', function () {
                         totalPages = pdf.numPages;
 
                         // Expose for other scripts
+                        console.log('PDF loaded with', loadedPdf.numPages, 'pages.');
+                        pdf = loadedPdf;
+                        totalPages = pdf.numPages;
+
+                        // Expose for other scripts
                         window.pdfDocLoaded = pdf;
                         window.totalPageCount = totalPages;
 
+                        // UI Feedback: Keep blocked, but update message
+                        const notif = document.getElementById('upload-notification');
+                        notif.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing PDF structure...';
+                        notif.classList.remove('hidden');
+
                         // Check for bookmarks (chapters)
+                        pdf.getOutline().then(outline => {
+                            if (outline && outline.length > 0) {
+                                window.pdfOutline = outline;
+                                const btn = document.getElementById('split-by-bookmarks-btn');
+                                if (btn) btn.classList.remove('hidden');
+                            } else {
+                                window.pdfOutline = null;
+                            }
+                        });
+
+                        // Start Rendering
+                        displayAllPages();
+                    }).catch(function (error) {
                         pdf.getOutline().then(outline => {
                             if (outline && outline.length > 0) {
                                 console.log('Bookmarks found:', outline);
@@ -59,9 +82,8 @@ document.addEventListener('DOMContentLoaded', function () {
                             }
                         });
 
+                        // Start Rendering in Background
                         displayAllPages();
-                        document.getElementById('spinner').classList.add('hidden');
-                        document.getElementById('scroll-buttons').style.display = 'flex';
                     }).catch(function (error) {
                         console.error('Error loading PDF:', error);
                         document.getElementById('spinner').classList.add('hidden');
@@ -195,12 +217,32 @@ function displayAllPages() {
     document.getElementById('selection-toolbar').classList.remove('hidden');
     document.getElementById('selection-toolbar').style.display = 'flex';
 
-    document.getElementById('spinner').classList.remove('hidden'); // Show spinner
+    // Block User Interface with Spinner and Lock Scroll
+    const spinner = document.getElementById('spinner');
+    spinner.classList.remove('hidden');
+    spinner.innerHTML = '<div class="spinner"></div><p style="margin-top:10px; color:white;">Loading pages...</p>';
+    document.body.style.overflow = 'hidden'; // Lock scrolling
+
     const loadPage = function (pageNumber) {
         if (pageNumber > totalPages) {
             document.getElementById('spinner').classList.add('hidden'); // Hide spinner when done
+            document.body.style.overflow = 'auto'; // Unlock scrolling
+            document.getElementById('upload-notification').classList.add('hidden');
+            // Show success toast
+            const success = document.createElement('div');
+            success.className = 'notification';
+            success.innerHTML = '<i class="fas fa-check-circle"></i> PDF Ready!';
+            document.querySelector('.upload-hero').appendChild(success);
+            setTimeout(() => success.remove(), 3000);
+
+            document.getElementById('scroll-buttons').style.display = 'flex';
             return;
         }
+
+        // Update progress text
+        const pct = Math.round((pageNumber / totalPages) * 100);
+        const spinnerText = document.querySelector('#spinner p');
+        if (spinnerText) spinnerText.textContent = `Loading pages... ${pct}%`;
         console.log('Loading page', pageNumber);
         pdf.getPage(pageNumber).then(function (page) {
             const scale = 1.5;
@@ -217,6 +259,12 @@ function displayAllPages() {
                 const pageNumberDiv = document.createElement('div');
                 pageNumberDiv.classList.add('page-number');
                 pageNumberDiv.textContent = pageNumber;
+
+                // Fix for Large PDFs: Check selection state on render
+                if (selectedPages.has(pageNumber)) {
+                    pageContainer.classList.add('selected');
+                }
+
                 pageContainer.appendChild(canvas);
                 pageContainer.appendChild(pageNumberDiv);
                 pageContainer.addEventListener('click', function () {
