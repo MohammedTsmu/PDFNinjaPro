@@ -1495,3 +1495,55 @@ body {
     position: relative;
 }
 
+
+/* --- Images to PDF Styles --- */
+
+.img2pdf-card {
+    cursor: grab;
+    position: relative;
+}
+
+.img2pdf-card:active {
+    cursor: grabbing;
+}
+
+.img-delete-btn {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 28px;
+    height: 28px;
+    background: rgba(239, 68, 68, 0.9);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 12px;
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.img2pdf-card:hover .img-delete-btn {
+    opacity: 1;
+}
+
+.img-delete-btn:hover {
+    transform: scale(1.1);
+    background: #dc2626;
+}
+
+
+/* Fix Dropdown Styling for Dark Theme */
+select option {
+    background: #1a1a2e;
+    color: white;
+}
+
+select {
+    background: rgba(26, 26, 46, 0.95) !important;
+    color: white !important;
+}
+
