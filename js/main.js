@@ -3,6 +3,7 @@
 
 window.selectedPages = new Set();
 let pdfDocGlobal = null;
+let renderSessionId = 0; // Cancellation Token
 
 document.addEventListener('DOMContentLoaded', function () {
     // UI Elements
@@ -56,6 +57,11 @@ document.addEventListener('DOMContentLoaded', function () {
     async function startLoading(file) {
         // UI Reset
         console.log('Starting direct load for:', file.name);
+
+        // New Render Session
+        renderSessionId++;
+        const currentSessionId = renderSessionId;
+
         document.querySelector('.upload-content').classList.add('hidden');
         if (statusCard) statusCard.classList.remove('hidden');
 
@@ -107,7 +113,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Initialize Grid
             window.totalPageCount = pdfDocGlobal.numPages;
-            await renderGrid(pdfDocGlobal);
+            await renderGrid(pdfDocGlobal, currentSessionId);
 
             // Unlock UI
             spinner.classList.add('hidden');
@@ -129,7 +135,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // 3. Custom Loop Renderer
-    async function renderGrid(pdfDoc) {
+    async function renderGrid(pdfDoc, sessionId) {
         const container = document.getElementById('pdf-preview');
         container.innerHTML = '';
 
@@ -137,6 +143,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // 1. Create Skeletons FIRST (Instant visual structure)
         for (let i = 1; i <= pdfDoc.numPages; i++) {
+            // Check Cancellation (Early exit if skeleton generation is slow for massive files)
+            if (sessionId !== renderSessionId) return;
+
             const pageContainer = document.createElement('div');
             pageContainer.className = 'page-container loading';
             pageContainer.dataset.pageNumber = i;
@@ -148,6 +157,12 @@ document.addEventListener('DOMContentLoaded', function () {
         // 2. Render Loop (Congestion Control)
         // We process in small chunks to keep UI responsive
         for (let i = 1; i <= pdfDoc.numPages; i++) {
+            // Check Cancellation
+            if (sessionId !== renderSessionId) {
+                console.log('Render cancelled for session', sessionId);
+                return;
+            }
+
             if (spinnerText) spinnerText.textContent = 'Rendering page ' + i + ' of ' + pdfDoc.numPages;
 
             await renderSinglePage(pdfDoc, i);
