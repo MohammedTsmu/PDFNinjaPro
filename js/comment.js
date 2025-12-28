@@ -70,6 +70,10 @@ document.addEventListener('DOMContentLoaded', () => {
     bindReset('rotation-value', 'comment-rotation', '0', 'rotation-value', '°');
     bindReset('opacity-value', 'comment-opacity', '1', 'opacity-value', '');
 
+    // Bind Labels too
+    bindReset('lbl-rotate', 'comment-rotation', '0', 'rotation-value', '°');
+    bindReset('lbl-opacity', 'comment-opacity', '1', 'opacity-value', '');
+
     bindReset('lbl-color', 'comment-color', '#ff0000');
     bindReset('lbl-size', 'comment-size', '20');
     bindReset('lbl-font', 'comment-font', 'Helvetica');
