@@ -149,27 +149,79 @@ async function renderReorderGrid() {
 }
 
 function updatePageNumbers() {
-    // Update visual page numbers after reorder
     const cards = document.querySelectorAll('#reorder-grid .page-card');
+
+    // Build swap pairs: find pages that swapped positions
+    const swapPairs = [];
+    const colors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+    let colorIndex = 0;
+
+    cards.forEach((card, idx) => {
+        const originalPage = parseInt(card.dataset.pageIndex, 10);
+        const currentPosition = idx + 1;
+        const wasIntentionallyMoved = card.dataset.moved === 'true';
+
+        if (wasIntentionallyMoved && originalPage !== currentPosition) {
+            // Find if another page now occupies this page's original position
+            const cardAtMyOriginalPos = Array.from(cards).find((c, i) => {
+                return (i + 1) === originalPage && parseInt(c.dataset.pageIndex, 10) !== originalPage;
+            });
+
+            if (cardAtMyOriginalPos) {
+                // Check if we already have this pair
+                const cardAtOriginalPageIndex = parseInt(cardAtMyOriginalPos.dataset.pageIndex, 10);
+                const existingPair = swapPairs.find(p =>
+                    (p.pageA === originalPage && p.pageB === cardAtOriginalPageIndex) ||
+                    (p.pageB === originalPage && p.pageA === cardAtOriginalPageIndex)
+                );
+
+                if (!existingPair) {
+                    swapPairs.push({
+                        pageA: originalPage,
+                        pageB: cardAtOriginalPageIndex,
+                        color: colors[colorIndex % colors.length]
+                    });
+                    colorIndex++;
+                }
+            }
+        }
+    });
+
+    // Update display
     cards.forEach((card, idx) => {
         const originalPage = parseInt(card.dataset.pageIndex, 10);
         const currentPosition = idx + 1;
         const pageNum = card.querySelector('.page-num');
         const wasIntentionallyMoved = card.dataset.moved === 'true';
 
+        // Remove old swap badge
+        const oldBadge = card.querySelector('.swap-badge');
+        if (oldBadge) oldBadge.remove();
+
+        // Check if this page is part of a swap
+        const swapInfo = swapPairs.find(p => p.pageA === originalPage || p.pageB === originalPage);
+
         if (wasIntentionallyMoved && originalPage !== currentPosition) {
-            // Page was intentionally dragged by user
             pageNum.innerHTML = `<span class="original-page">Page ${originalPage}</span> → <span class="new-position">Pos ${currentPosition}</span>`;
             card.classList.add('page-moved');
+
+            // Add swap badge if part of a swap
+            if (swapInfo) {
+                const otherPage = swapInfo.pageA === originalPage ? swapInfo.pageB : swapInfo.pageA;
+                const badge = document.createElement('div');
+                badge.className = 'swap-badge';
+                badge.style.background = swapInfo.color;
+                badge.innerHTML = `<i class="fas fa-exchange-alt"></i> ${otherPage}`;
+                badge.title = `Swapped with Page ${otherPage}`;
+                card.appendChild(badge);
+            }
         } else if (originalPage !== currentPosition) {
-            // Page shifted as side effect - show position but no highlight
             pageNum.innerHTML = `Page ${originalPage} <span class="shifted-pos">(now ${currentPosition})</span>`;
             card.classList.remove('page-moved');
         } else {
-            // Page is in original position
             pageNum.textContent = `Page ${originalPage}`;
             card.classList.remove('page-moved');
-            delete card.dataset.moved; // Reset if moved back
+            delete card.dataset.moved;
         }
     });
 }
