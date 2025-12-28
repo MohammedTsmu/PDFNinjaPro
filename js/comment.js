@@ -279,21 +279,19 @@ async function renderCommentPages() {
     });
 }
 
+// Lock/Unlock logic removed as input is gone
+// document.addEventListener('DOMContentLoaded', ... ); 
+
 function addComment(pageIndex, x, y, wrapper, canvasWidth, canvasHeight) {
-    const textInput = document.getElementById('comment-input-text');
+    // Current Settings
     const colorInput = document.getElementById('comment-color');
     const sizeInput = document.getElementById('comment-size');
     const fontInput = document.getElementById('comment-font');
     const opacityInput = document.getElementById('comment-opacity');
     const rotationInput = document.getElementById('comment-rotation');
 
-    const text = textInput.value.trim();
-    if (!text) {
-        textInput.focus();
-        textInput.style.border = '1px solid red';
-        setTimeout(() => textInput.style.border = '', 500);
-        return;
-    }
+    // No initial text
+    const text = "";
 
     const color = colorInput.value;
     const size = parseInt(sizeInput.value);
@@ -306,35 +304,98 @@ function addComment(pageIndex, x, y, wrapper, canvasWidth, canvasHeight) {
     const commentEl = document.createElement('div');
     commentEl.className = 'comment-overlay';
     commentEl.dataset.id = id;
-    commentEl.textContent = text;
+    commentEl.contentEditable = "true"; // Click to Type!
+
+    // Initial content (placeholder-like behavior handled by CSS or just focus)
+    commentEl.innerText = "";
+
+    // Styling
     commentEl.style.color = color;
     commentEl.style.fontSize = size + 'px';
-
-    // Apply New Styles
     commentEl.style.fontFamily = fontName === 'TimesRoman' ? 'Times New Roman, serif' :
         fontName === 'Courier' ? 'Courier New, monospace' :
             'Helvetica, Arial, sans-serif';
     commentEl.style.opacity = opacity;
+    commentEl.style.whiteSpace = "nowrap"; // Keep it one line initially, or "pre-wrap"
+    commentEl.style.minWidth = "20px";
+    commentEl.style.minHeight = "1em";
+    commentEl.style.outline = "2px dashed rgba(255,255,255,0.5)"; // Outline when editing
+    commentEl.style.padding = "2px";
+    commentEl.style.cursor = "text";
 
     // Position & Rotation
     commentEl.style.left = x + 'px';
     commentEl.style.top = y + 'px';
-    // Translate -50% is for centering. Rotation is added on top.
+    // Translate -50% -50% centering
+    // BUT for typing, user expects top-left or centered?
+    // Let's keep centered as it is the current logic, but typing expands outwards.
+    // To make left-align typing easier, we might want translate(0, -50%)?
+    // Let's stick to center for now.
     commentEl.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
 
-    // Delete Button
+    // Delete Button (Hidden while editing)
     const delBtn = document.createElement('div');
     delBtn.className = 'comment-delete-btn';
     delBtn.innerHTML = '<i class="fas fa-times"></i>';
+    delBtn.style.display = 'none'; // Initially hidden
     delBtn.onclick = (e) => {
         e.stopPropagation();
         removeComment(id);
     };
     commentEl.appendChild(delBtn);
 
+    // Event: Lose Focus (Save or Delete)
+    commentEl.onblur = () => {
+        const content = commentEl.innerText.trim();
+        if (!content) {
+            // Remove if empty
+            removeComment(id);
+        } else {
+            // Save Valid Comment
+            commentEl.contentEditable = "false";
+            commentEl.style.outline = "none";
+            commentEl.style.cursor = "move";
+            delBtn.style.display = 'flex';
+
+            // Update Array
+            const existing = comments.find(c => c.id === id);
+            if (existing) {
+                existing.text = content;
+            }
+        }
+    };
+
+    // Event: Keydown (Enter to finish?) 
+    commentEl.onkeydown = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            commentEl.blur(); // Trigger blur to save
+        }
+    };
+
+    // Event: Double Click (Edit)
+    commentEl.ondblclick = (e) => {
+        e.stopPropagation();
+        commentEl.contentEditable = "true";
+        commentEl.focus();
+        commentEl.style.outline = "2px dashed rgba(255,255,255,0.5)";
+        commentEl.style.cursor = "text";
+        delBtn.style.display = 'none';
+
+        // Select all text for easy replacement? Or just caret?
+        // Let's just focus.
+    };
+
     // Drag Start
     commentEl.addEventListener('mousedown', (e) => {
         if (e.target === delBtn) return;
+
+        // If editing, allow text selection (stop drag)
+        if (commentEl.isContentEditable) {
+            e.stopPropagation();
+            return;
+        }
+
         e.preventDefault();
         e.stopPropagation();
 
@@ -342,8 +403,6 @@ function addComment(pageIndex, x, y, wrapper, canvasWidth, canvasHeight) {
         dragStartX = e.clientX;
         dragStartY = e.clientY;
 
-        // FIX: Use current style left/top (Center Coords) instead of offset (Corner Coords)
-        // to prevent jumping because of translate(-50%, -50%)
         dragStartLeft = parseFloat(commentEl.style.left);
         dragStartTop = parseFloat(commentEl.style.top);
 
@@ -354,9 +413,15 @@ function addComment(pageIndex, x, y, wrapper, canvasWidth, canvasHeight) {
 
     comments.push({
         id, pageIndex, x, y,
-        text, color, size, fontName, opacity, rotation,
+        text: "", // Placeholder, updated on blur
+        color, size, fontName, opacity, rotation,
         element: commentEl, canvasWidth, canvasHeight
     });
+
+    // Immediately Focus to Type
+    setTimeout(() => {
+        commentEl.focus();
+    }, 10);
 }
 
 function handleGlobalDragMove(e) {
@@ -399,6 +464,9 @@ function removeComment(id) {
     }
 }
 
+// Helper to check for Arabic characters - Removed
+// function isArabic(text) { ... }
+
 async function saveCommentedPDF() {
     if (!commentFile) return;
     const btn = document.getElementById('download-commented-btn');
@@ -409,9 +477,13 @@ async function saveCommentedPDF() {
     try {
         const arrayBuffer = await commentFile.arrayBuffer();
         const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+
+        // Fontkit Removed
+        // pdfDoc.registerFontkit(window.fontkit);
+
         const pages = pdfDoc.getPages();
 
-        // Load fonts
+        // Load Standard Fonts
         const helveticaFont = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
         const timesFont = await pdfDoc.embedFont(PDFLib.StandardFonts.TimesRoman);
         const courierFont = await pdfDoc.embedFont(PDFLib.StandardFonts.Courier);
@@ -422,6 +494,8 @@ async function saveCommentedPDF() {
             'Courier': courierFont
         };
 
+        // Arabic Font Loading Removed
+
         comments.forEach(c => {
             const page = pages[c.pageIndex - 1]; // 0-based
             const { width, height } = page.getSize();
@@ -429,7 +503,10 @@ async function saveCommentedPDF() {
             const scaleX = width / (c.canvasWidth || width);
             const scaleY = height / (c.canvasHeight || height);
 
-            const font = fonts[c.fontName] || helveticaFont;
+            // Select Font
+            let font = fonts[c.fontName] || helveticaFont;
+
+            // Arabic Detection Removed
 
             const textWidth = font.widthOfTextAtSize(c.text, c.size);
             const textHeight = font.heightAtSize(c.size);
