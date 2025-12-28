@@ -820,11 +820,21 @@ body {
   padding: 15px;
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 15px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+}
+
+.sortable-ghost {
+  opacity: 0.4;
+  background: rgba(59, 130, 246, 0.1);
+  border: 2px dashed rgba(59, 130, 246, 0.5);
+}
+
+.drag-handle:hover {
+  color: white !important;
 }
 
 .merge-card:hover {

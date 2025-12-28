@@ -86,15 +86,44 @@ function updateThumbnailUI(id, thumb) {
     if (img && thumb) img.src = thumb;
 }
 
+// Initialize Sortable once
+let mergeSortable = null;
+
 function updateMergeUI() {
     mergeList.innerHTML = '';
 
+    if (!mergeSortable) {
+        mergeSortable = new Sortable(mergeList, {
+            animation: 150,
+            ghostClass: 'sortable-ghost',
+            handle: '.drag-handle', // Make whole card draggable? Or maybe just grip? Whole card is fine.
+            draggable: '.merge-card', // Only .merge-card elements are draggable
+            onEnd: function (evt) {
+                // Reorder mergeState based on new DOM order
+                const newOrderIds = Array.from(mergeList.children)
+                    .filter(el => el.classList.contains('merge-card')) // Filter out header if any
+                    .map(card => card.dataset.id);
+
+                const idMap = new Map(mergeState.map(item => [item.id, item]));
+                const newState = [];
+                newOrderIds.forEach(id => {
+                    if (idMap.has(id)) newState.push(idMap.get(id));
+                });
+
+                // If length mismatch (e.g. valid items vs header), handle carefully
+                if (newState.length === mergeState.length) {
+                    mergeState = newState;
+                    updateMergeUI(); // Re-render to fix up/down buttons and indices
+                }
+            }
+        });
+    }
+
     if (mergeState.length > 0) {
         const header = document.createElement('div');
-        header.style.display = 'flex';
-        header.style.justifyContent = 'flex-end';
-        header.style.marginBottom = '10px';
-        header.innerHTML = `<button class="btn btn-sm btn-link text-danger" onclick="clearMergeFiles()" style="text-decoration:none;">Clear All</button>`;
+        header.className = 'merge-list-header'; // Non-draggable
+        header.style.textAlign = 'right';
+        header.innerHTML = `<button class="btn btn-sm btn-link text-danger" onclick="clearMergeFiles()">Clear All</button>`;
         mergeList.appendChild(header);
     }
 
@@ -113,6 +142,9 @@ function updateMergeUI() {
         const thumbSrc = item.thumbnail || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiPjxwYXRoIGQ9Ik0xNCAySDZhhTIgMiAwIDAgMCAyIDJ2MTZhMiAyIDAgMCAwIDIgMmgyYTIgMiAwIDAgMCAyLTJWMTRsLTUtNXoiLz48cG9seWxpbmUgcG9pbnRzPSIxNCAyIDE0IDggMjAgOCIvPjwvc3ZnPg==';
 
         card.innerHTML = `
+            <div class="drag-handle" style="cursor:grab; color:rgba(255,255,255,0.3); padding:0 10px; font-size:1.2em;">
+                <i class="fas fa-grip-vertical"></i>
+            </div>
             <div class="merge-thumb">
                 <img src="${thumbSrc}" alt="Preview">
             </div>
@@ -157,7 +189,7 @@ function updateMergeUI() {
         mergeBtn.disabled = false;
     } else {
         mergeBtn.style.display = 'none';
-        if (mergeState.length === 0) mergeList.innerHTML = '<p class="text-muted text-center">No files selected</p>';
+        if (mergeState.length === 0) mergeList.innerHTML = '<p class="text-muted text-center" style="margin-top:40px;">No files selected for merging.</p>';
     }
 }
 

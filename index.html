@@ -181,10 +181,13 @@
                     <div id="merge-file-list"
                         style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;"></div>
 
-                    <button id="merge-btn" class="btn btn-primary"
-                        style="margin-top: 20px; width: 100%; display: none;">
-                        <i class="fas fa-code-merge"></i> Merge Selected Files
-                    </button>
+                    <div style="margin-top:20px; display:flex; gap:10px;">
+                        <input type="text" id="merge-filename" class="form-control"
+                            placeholder="Output Filename (Optional)" style="flex:1;">
+                        <button id="merge-btn" class="btn btn-primary" style="flex:0 0 200px; display: none;">
+                            <i class="fas fa-code-merge"></i> Merge Files
+                        </button>
+                    </div>
                     <a id="merge-download-link" href="#" class="btn btn-primary hidden" style="margin-top: 20px;"><i
                             class="fas fa-download"></i> Download Merged</a>
                 </div>
