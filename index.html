@@ -78,23 +78,37 @@
         <main class="main-content">
 
             <!-- Upload Area -->
-            <section class="upload-hero">
+            <!-- Premium Drop Zone (2025 Design) -->
+            <div class="upload-zone" id="drop-zone">
                 <div class="upload-content">
-                    <i class="fas fa-cloud-upload-alt upload-icon"></i>
-                    <h2>Drag & Drop your PDF here</h2>
-                    <p class="text-muted" style="margin-bottom: 20px;">or click to browse files</p>
-
-                    <div class="file-input-wrapper">
-                        <button class="btn-primary-lg">Select File</button>
-                        <input type="file" id="pdf-upload" accept="application/pdf">
+                    <div class="upload-icon-wrapper">
+                        <!-- Inline SVG for futuristic folder icon -->
+                        <svg class="upload-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="1.5">
+                            <path
+                                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        <div class="upload-ripple"></div>
                     </div>
+                    <h2 class="upload-title">Upload Documents</h2>
+                    <p class="upload-subtitle">Drag & Drop PDF or <span class="highlight">Browse</span></p>
+                    <input type="file" id="pdf-upload" accept="application/pdf" hidden>
                 </div>
 
-                <div id="upload-notification" class="notification hidden"
-                    style="margin-top: 20px; color: var(--secondary-color);">
-                    <i class="fas fa-check-circle"></i> File uploaded successfully!
+                <!-- Magic Status Card -->
+                <div id="file-status-card" class="file-status-card hidden">
+                    <div class="file-icon"><i class="fas fa-file-pdf"></i></div>
+                    <div class="file-info">
+                        <p class="file-name" id="status-filename">doc.pdf</p>
+                        <div class="file-meta">
+                            <span id="status-size">0 MB</span> <span class="divider">•</span> <span
+                                id="status-pages">Scanning...</span>
+                        </div>
+                    </div>
+                    <div class="status-indicator processing"></div>
                 </div>
-            </section>
+            </div>
 
 
 
@@ -237,7 +251,7 @@
             </div>
 
             <footer class="app-footer">
-                <p>&copy; 2025 PDF Ninja Pro.</p>
+                <p id="copyright">&copy; 2025 PDF Ninja Pro.</p>
             </footer>
         </main>
     </div>
@@ -248,7 +262,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.10.2/Sortable.min.js"></script>
     <!-- Removed Bootstrap JS dependency -->

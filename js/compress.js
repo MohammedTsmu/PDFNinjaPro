@@ -1,37 +1,49 @@
-document.getElementById('compress-btn').addEventListener('click', async function () {
-    const fileInput = document.getElementById('pdf-upload');
-    const file = fileInput.files[0];
+const compressBtn = document.getElementById('compress-btn');
+if (compressBtn) {
+    compressBtn.addEventListener('click', async function () {
+        const fileInput = document.getElementById('pdf-upload');
+        const file = fileInput.files[0];
 
-    if (file) {
-        console.log('Compressing PDF');
-        const fileReader = new FileReader();
-        fileReader.onload = async function () {
-            const typedarray = new Uint8Array(this.result);
-            const pdfDoc = await PDFLib.PDFDocument.load(typedarray);
+        if (file) {
+            console.log('Compressing PDF');
+            const fileReader = new FileReader();
 
-            // إنشاء مستند PDF جديد وضغط الصور
-            const newPdfDoc = await PDFLib.PDFDocument.create();
-            const copiedPages = await newPdfDoc.copyPages(pdfDoc, pdfDoc.getPageIndices());
+            fileReader.onload = async function () {
+                try {
+                    const typedarray = new Uint8Array(this.result);
+                    const pdfDoc = await PDFLib.PDFDocument.load(typedarray);
 
-            copiedPages.forEach((page) => {
-                newPdfDoc.addPage(page);
-                // يمكننا تحسين الصور هنا إذا لزم الأمر
-                // على سبيل المثال: page.compress()
-            });
+                    // Create new PDF
+                    const newPdfDoc = await PDFLib.PDFDocument.create();
+                    const copiedPages = await newPdfDoc.copyPages(pdfDoc, pdfDoc.getPageIndices());
 
-            const pdfBytes = await newPdfDoc.save();
-            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-            const url = URL.createObjectURL(blob);
-            const downloadLink = document.createElement('a');
-            downloadLink.href = url;
-            downloadLink.download = 'compressed.pdf';
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            document.body.removeChild(downloadLink);
-            console.log('PDF compressed and ready for download.');
-        };
-        fileReader.readAsArrayBuffer(file);
-    } else {
-        console.log('No file selected.');
-    }
-});
+                    copiedPages.forEach((page) => {
+                        newPdfDoc.addPage(page);
+                        // Future: Add compression logic here
+                    });
+
+                    const pdfBytes = await newPdfDoc.save();
+                    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                    const url = URL.createObjectURL(blob);
+
+                    // Download
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = url;
+                    downloadLink.download = 'compressed_' + file.name;
+                    document.body.appendChild(downloadLink);
+                    downloadLink.click();
+                    document.body.removeChild(downloadLink);
+
+                    console.log('PDF compressed and ready for download.');
+                } catch (error) {
+                    console.error('Compression error:', error);
+                    alert('Error compressing PDF');
+                }
+            };
+
+            fileReader.readAsArrayBuffer(file);
+        } else {
+            alert('Please select a PDF file first.');
+        }
+    });
+}

@@ -1,267 +1,155 @@
-// تعيين مسار العامل الخاص بـ PDF.js
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js';
+// Direct PDF Loader - Simplified & Reliable
+// Eliminates Web Workers to prevent "Fake Worker" and "Cross-Origin" issues.
 
 let selectedPages = new Set();
-let pdf = null;
-let currentPage = 1;
-let totalPages = 0;
-let viewMode = 'whole'; // تغيير القيمة الافتراضية إلى 'whole'
+let pdfDocGlobal = null;
 
 document.addEventListener('DOMContentLoaded', function () {
-    // إزالة أزرار التبديل بين طرق العرض
+    // UI Elements
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('pdf-upload');
+    const statusCard = document.getElementById('file-status-card');
+    const pdfPreview = document.getElementById('pdf-preview');
+
+    // Legacy element cleanup
     const viewPaginationBtn = document.getElementById('view-pagination');
     const viewWholeBtn = document.getElementById('view-whole');
     if (viewPaginationBtn) viewPaginationBtn.remove();
     if (viewWholeBtn) viewWholeBtn.remove();
 
-    // إعداد حدث التحميل للملف
-    const fileInput = document.getElementById('pdf-upload');
-    if (fileInput) {
-        fileInput.addEventListener('change', function () {
-            const file = this.files[0];
-            if (file) {
-                console.log('File selected:', file.name);
-                const fileReader = new FileReader();
+    // 1. Setup Drag & Drop
+    if (dropZone && fileInput) {
+        dropZone.addEventListener('click', () => fileInput.click());
 
-                fileReader.onloadstart = function () {
-                    document.getElementById('spinner').classList.remove('hidden');
-                };
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
 
-                fileReader.onloadend = function () {
-                    const notif = document.getElementById('upload-notification');
-                    notif.classList.remove('hidden');
-                    setTimeout(() => {
-                        notif.classList.add('hidden');
-                    }, 3000);
-                };
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
 
-                fileReader.onload = function () {
-                    const typedarray = new Uint8Array(this.result);
-                    pdfjsLib.getDocument(typedarray).promise.then(function (loadedPdf) {
-                        console.log('PDF loaded with', loadedPdf.numPages, 'pages.');
-                        pdf = loadedPdf;
-                        totalPages = pdf.numPages;
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.add('drag-over'), false);
+        });
 
-                        // Expose for other scripts
-                        console.log('PDF loaded with', loadedPdf.numPages, 'pages.');
-                        pdf = loadedPdf;
-                        totalPages = pdf.numPages;
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.remove('drag-over'), false);
+        });
 
-                        // Expose for other scripts
-                        window.pdfDocLoaded = pdf;
-                        window.totalPageCount = totalPages;
-
-                        // UI Feedback: Keep blocked, but update message
-                        const notif = document.getElementById('upload-notification');
-                        notif.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing PDF structure...';
-                        notif.classList.remove('hidden');
-
-                        // Check for bookmarks (chapters)
-                        pdf.getOutline().then(outline => {
-                            if (outline && outline.length > 0) {
-                                window.pdfOutline = outline;
-                                const btn = document.getElementById('split-by-bookmarks-btn');
-                                if (btn) btn.classList.remove('hidden');
-                            } else {
-                                window.pdfOutline = null;
-                            }
-                        });
-
-                        // Start Rendering
-                        displayAllPages();
-                    }).catch(function (error) {
-                        pdf.getOutline().then(outline => {
-                            if (outline && outline.length > 0) {
-                                console.log('Bookmarks found:', outline);
-                                window.pdfOutline = outline;
-                                // Show "Split by Bookmark" button if hidden
-                                const btn = document.getElementById('split-by-bookmarks-btn');
-                                if (btn) btn.classList.remove('hidden');
-                            } else {
-                                window.pdfOutline = null;
-                            }
-                        });
-
-                        // Start Rendering in Background
-                        displayAllPages();
-                    }).catch(function (error) {
-                        console.error('Error loading PDF:', error);
-                        document.getElementById('spinner').classList.add('hidden');
-                    });
-                };
-                fileReader.readAsArrayBuffer(file);
-            } else {
-                console.log('No file selected.');
-            }
+        dropZone.addEventListener('drop', handleDrop, false);
+        fileInput.addEventListener('change', (e) => {
+            if (testFiles(e.target.files)) startLoading(e.target.files[0]);
         });
     }
 
-    // إعداد أحداث أزرار التمرير
-    document.getElementById('scroll-top-btn').addEventListener('click', function () {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
+    function handleDrop(e) {
+        if (testFiles(e.dataTransfer.files)) startLoading(e.dataTransfer.files[0]);
+    }
 
-    document.getElementById('scroll-bottom-btn').addEventListener('click', function () {
-        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-    });
+    function testFiles(files) {
+        return files.length > 0 && files[0].type === 'application/pdf';
+    }
 
-    // Reverse Sync: Input -> Visual Selection
-    const rangesInput = document.getElementById('page-ranges');
-    if (rangesInput) {
-        rangesInput.addEventListener('input', function () {
-            const val = this.value;
-            const newSelected = new Set();
+    // 2. Main Loading Logic
+    async function startLoading(file) {
+        // UI Reset
+        console.log('Starting direct load for:', file.name);
+        document.querySelector('.upload-content').classList.add('hidden');
+        if (statusCard) statusCard.classList.remove('hidden');
 
-            if (val) {
-                const parts = val.split(',');
-                parts.forEach(part => {
-                    const range = part.trim().split('-');
-                    if (range.length === 2) {
-                        const start = parseInt(range[0]);
-                        const end = parseInt(range[1]);
-                        if (!isNaN(start) && !isNaN(end)) {
-                            const min = Math.min(start, end);
-                            const max = Math.max(start, end);
-                            for (let i = min; i <= max; i++) newSelected.add(i);
-                        }
-                    } else if (range.length === 1) {
-                        const page = parseInt(range[0]);
-                        if (!isNaN(page)) newSelected.add(page);
-                    }
-                });
-            }
+        document.getElementById('status-filename').textContent = file.name;
+        document.getElementById('status-size').textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
 
-            // Update Global State
-            selectedPages = newSelected;
+        const statusInd = document.querySelector('.status-indicator');
+        const statusPages = document.getElementById('status-pages');
+        if (statusInd) statusInd.className = 'status-indicator processing';
+        if (statusPages) statusPages.innerHTML = 'Reading file...';
 
-            // Update UI (but don't overwrite input self to avoid cursor jumps!)
-            // We duplicate UI update logic here or extract it to updateVisualsOnly() 
-            // Simpler: Just copy specific UI update code here
-            document.querySelectorAll('.page-container').forEach(container => {
-                const num = parseInt(container.getAttribute('data-page-number'));
-                if (selectedPages.has(num)) {
-                    container.classList.add('selected');
-                } else {
-                    container.classList.remove('selected');
-                }
+        // Show Full Screen Spinner
+        const spinner = document.getElementById('spinner');
+        if (spinner) {
+            spinner.classList.remove('hidden');
+            spinner.innerHTML = '<div class="spinner"></div><p style="margin-top:10px; color:white;">Initializing engine...</p>';
+        }
+
+        try {
+            // Read ArrayBuffer
+            const arrayBuffer = await file.arrayBuffer();
+
+            // Load PDF Document
+            const loadingTask = pdfjsLib.getDocument({
+                data: arrayBuffer,
+                cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+                cMapPacked: true
             });
-        });
-    }
-});
 
-function updateSelectionUI() {
-    // Sync UI with selectedPages Set
-    document.querySelectorAll('.page-container').forEach(container => {
-        const num = parseInt(container.getAttribute('data-page-number'));
-        if (selectedPages.has(num)) {
-            container.classList.add('selected');
-        } else {
-            container.classList.remove('selected');
-        }
-    });
+            pdfDocGlobal = await loadingTask.promise;
 
-    // Sync Input with Range Formatting
-    const rangesInput = document.getElementById('page-ranges');
-    if (rangesInput) {
-        const sorted = Array.from(selectedPages).sort((a, b) => a - b);
-        let ranges = [];
-        for (let i = 0; i < sorted.length; i++) {
-            const start = sorted[i];
-            let end = start;
-            while (i + 1 < sorted.length && sorted[i + 1] === end + 1) {
-                end++;
-                i++;
+            // Success State
+            statusInd.className = 'status-indicator success';
+            statusPages.innerHTML = '<span style="color:#10B981; font-weight:bold;">Ready</span> • ' + pdfDocGlobal.numPages + ' Pages';
+
+            // Initialize Grid
+            window.totalPageCount = pdfDocGlobal.numPages;
+            await renderGrid(pdfDocGlobal);
+
+            // Unlock UI
+            spinner.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+
+            // Show Tools
+            const toolbar = document.getElementById('selection-toolbar');
+            if (toolbar) {
+                toolbar.classList.remove('hidden');
+                toolbar.style.display = 'flex';
             }
-            if (start === end) ranges.push(start);
-            else ranges.push(`${start}-${end}`);
-        }
-        rangesInput.value = ranges.join(', ');
-    }
-}
-
-document.getElementById('sel-all').addEventListener('click', () => {
-    for (let i = 1; i <= totalPages; i++) selectedPages.add(i);
-    updateSelectionUI();
-});
-
-document.getElementById('sel-none').addEventListener('click', () => {
-    selectedPages.clear();
-    updateSelectionUI();
-});
-
-document.getElementById('sel-inverse').addEventListener('click', () => {
-    for (let i = 1; i <= totalPages; i++) {
-        if (selectedPages.has(i)) selectedPages.delete(i);
-        else selectedPages.add(i);
-    }
-    updateSelectionUI();
-});
-
-document.getElementById('sel-odd').addEventListener('click', () => {
-    selectedPages.clear();
-    for (let i = 1; i <= totalPages; i += 2) selectedPages.add(i);
-    updateSelectionUI();
-});
-
-document.getElementById('sel-even').addEventListener('click', () => {
-    selectedPages.clear();
-    for (let i = 2; i <= totalPages; i += 2) selectedPages.add(i);
-    updateSelectionUI();
-});
-
-function displayAllPages() {
-    const pdfPreview = document.getElementById('pdf-preview');
-    pdfPreview.innerHTML = '';
-
-    // Show Toolbar
-    document.getElementById('selection-toolbar').classList.remove('hidden');
-    document.getElementById('selection-toolbar').style.display = 'flex';
-
-    // Block User Interface with Spinner and Lock Scroll
-    const spinner = document.getElementById('spinner');
-    spinner.classList.remove('hidden');
-    spinner.innerHTML = '<div class="spinner"></div><p style="margin-top:10px; color:white;">Loading pages...</p>';
-    document.body.style.overflow = 'hidden'; // Lock scrolling
-
-    // Concurrency settings
-    const MAX_CONCURRENT_RENDERS = 4; // Safely render 4 pages at once
-    let pagesRendered = 0;
-    let nextPageToLoad = 1;
-
-    // Init progress text immediately
-    const spinnerText = document.querySelector('#spinner p');
-    if (spinnerText) spinnerText.textContent = `Loading pages... 0%`;
-
-    const updateProgress = () => {
-        pagesRendered++;
-        // Update progress text
-        const pct = Math.round((pagesRendered / totalPages) * 100);
-        if (spinnerText) spinnerText.textContent = `Loading pages... ${pct}%`;
-
-        // Check completion
-        if (pagesRendered >= totalPages) {
-            document.getElementById('spinner').classList.add('hidden');
-            document.body.style.overflow = 'auto'; // Unlock scrolling
-            document.getElementById('upload-notification').classList.add('hidden');
-
-            const success = document.createElement('div');
-            success.className = 'notification';
-            success.innerHTML = '<i class="fas fa-check-circle"></i> PDF Ready!';
-            document.querySelector('.upload-hero').appendChild(success);
-            setTimeout(() => success.remove(), 3000);
-
             document.getElementById('scroll-buttons').style.display = 'flex';
-        } else {
-            // Try to pick up next task
-            startNextRender();
-        }
-    };
 
-    const loadSinglePage = (pageNumber) => {
-        return pdf.getPage(pageNumber).then(function (page) {
-            // Low-res thumbnail for memory efficiency
-            const scale = 0.3;
-            const viewport = page.getViewport({ scale: scale });
+        } catch (error) {
+            console.error(error);
+            alert('Error loading PDF: ' + error.message);
+            spinner.classList.add('hidden');
+        }
+    }
+
+    // 3. Custom Loop Renderer
+    async function renderGrid(pdfDoc) {
+        const container = document.getElementById('pdf-preview');
+        container.innerHTML = '';
+
+        const spinnerText = document.querySelector('#spinner p');
+
+        // 1. Create Skeletons FIRST (Instant visual structure)
+        for (let i = 1; i <= pdfDoc.numPages; i++) {
+            const pageContainer = document.createElement('div');
+            pageContainer.className = 'page-container loading';
+            pageContainer.dataset.pageNumber = i;
+            pageContainer.innerHTML = '<div class="skeleton-spinner"></div><div class="page-number">' + i + '</div>';
+            pageContainer.onclick = () => toggleSelect(i, pageContainer);
+            container.appendChild(pageContainer);
+        }
+
+        // 2. Render Loop (Congestion Control)
+        // We process in small chunks to keep UI responsive
+        for (let i = 1; i <= pdfDoc.numPages; i++) {
+            if (spinnerText) spinnerText.textContent = 'Rendering page ' + i + ' of ' + pdfDoc.numPages;
+
+            await renderSinglePage(pdfDoc, i);
+
+            // BREATHING ROOM: Pause every 3 pages to let UI update
+            if (i % 3 === 0) {
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+        }
+    }
+
+    async function renderSinglePage(pdfDoc, pageNum) {
+        try {
+            const page = await pdfDoc.getPage(pageNum);
+            const viewport = page.getViewport({ scale: 0.4 }); // Thumbnail scale
+
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
             canvas.height = viewport.height;
@@ -272,73 +160,148 @@ function displayAllPages() {
                 viewport: viewport
             };
 
-            const pageContainer = document.createElement('div');
-            pageContainer.classList.add('page-container');
-            pageContainer.style.order = pageNumber;
-            pageContainer.setAttribute('data-page-number', pageNumber);
+            await page.render(renderContext).promise;
 
-            const pageNumberDiv = document.createElement('div');
-            pageNumberDiv.classList.add('page-number');
-            pageNumberDiv.textContent = pageNumber;
+            // Update DOM
+            const container = document.querySelector('.page-container[data-page-number="' + pageNum + '"]');
+            if (container) {
+                container.classList.remove('loading');
+                container.innerHTML = ''; // Clear skeleton
+                container.appendChild(canvas);
 
-            if (typeof selectedPages !== 'undefined' && selectedPages.has(pageNumber)) {
-                pageContainer.classList.add('selected');
+                const num = document.createElement('div');
+                num.className = 'page-number';
+                num.textContent = pageNum;
+                container.appendChild(num);
+
+                // Re-apply selection if needed
+                if (selectedPages.has(pageNum)) container.classList.add('selected');
             }
 
-            pageContainer.appendChild(canvas);
-            pageContainer.appendChild(pageNumberDiv);
-
-            pageContainer.addEventListener('click', function () {
-                if (typeof selectedPages === 'undefined') return;
-                if (selectedPages.has(pageNumber)) {
-                    selectedPages.delete(pageNumber);
-                } else {
-                    selectedPages.add(pageNumber);
-                }
-                if (typeof updateSelectionUI === 'function') updateSelectionUI();
-                else {
-                    if (selectedPages.has(pageNumber)) pageContainer.classList.add('selected');
-                    else pageContainer.classList.remove('selected');
-                }
-            });
-
-            pdfPreview.appendChild(pageContainer);
-
-            return page.render(renderContext).promise.then(() => {
-                page.cleanup(); // Free memory
-            });
-        }).catch(function (error) {
-            console.error('Error loading page', pageNumber);
-            if (spinnerText) spinnerText.innerText = `Error on page ${pageNumber}. Retrying...`;
-            // Even if error, resolve to keep queue moving?
-            // If we throw, the catch block in startNextRender calls updateProgress, which is good.
-            throw error;
-        });
-    };
-
-    const startNextRender = () => {
-        if (nextPageToLoad > totalPages) return;
-
-        const p = nextPageToLoad;
-        nextPageToLoad++;
-
-        loadSinglePage(p).then(() => {
-            updateProgress();
-        }).catch(() => {
-            updateProgress(); // Mark as done/skipped to prevent hang
-        });
-    };
-
-    // Kickoff initial batch
-    const initialBatch = Math.min(totalPages, MAX_CONCURRENT_RENDERS);
-    if (initialBatch > 0) {
-        for (let i = 0; i < initialBatch; i++) {
-            startNextRender();
+            page.cleanup();
+        } catch (e) {
+            console.error('Page render error:', pageNum, e);
+            const container = document.querySelector('.page-container[data-page-number="' + pageNum + '"]');
+            if (container) {
+                container.classList.remove('loading');
+                container.innerHTML = '<div style="color:red; font-size:20px;">✖</div>';
+            }
         }
-    } else {
-        // Handle 0 pages edge case (corrupt PDF?)
-        document.getElementById('spinner').classList.add('hidden');
-        document.body.style.overflow = 'auto';
-        alert("PDF loaded but appears to have 0 pages.");
     }
-}
+
+    // 4. Selection Logic
+    function toggleSelect(i, el) {
+        if (selectedPages.has(i)) {
+            selectedPages.delete(i);
+            el.classList.remove('selected');
+        } else {
+            selectedPages.add(i);
+            el.classList.add('selected');
+        }
+        updateSelectionUI();
+    }
+
+    // 5. Toolbox Actions
+    document.getElementById('sel-all').addEventListener('click', () => {
+        if (!pdfDocGlobal) return;
+        for (let i = 1; i <= pdfDocGlobal.numPages; i++) selectedPages.add(i);
+        updateSelectionUI();
+    });
+
+    document.getElementById('sel-none').addEventListener('click', () => {
+        selectedPages.clear();
+        updateSelectionUI();
+    });
+
+    document.getElementById('sel-inverse').addEventListener('click', () => {
+        if (!pdfDocGlobal) return;
+        for (let i = 1; i <= pdfDocGlobal.numPages; i++) {
+            if (selectedPages.has(i)) selectedPages.delete(i);
+            else selectedPages.add(i);
+        }
+        updateSelectionUI();
+    });
+
+    document.getElementById('sel-odd').addEventListener('click', () => {
+        if (!pdfDocGlobal) return;
+        selectedPages.clear();
+        for (let i = 1; i <= pdfDocGlobal.numPages; i += 2) selectedPages.add(i);
+        updateSelectionUI();
+    });
+
+    document.getElementById('sel-even').addEventListener('click', () => {
+        if (!pdfDocGlobal) return;
+        selectedPages.clear();
+        for (let i = 2; i <= pdfDocGlobal.numPages; i += 2) selectedPages.add(i);
+        updateSelectionUI();
+    });
+
+    function updateSelectionUI() {
+        // Visual Update
+        document.querySelectorAll('.page-container').forEach(container => {
+            const num = parseInt(container.dataset.pageNumber);
+            if (selectedPages.has(num)) container.classList.add('selected');
+            else container.classList.remove('selected');
+        });
+
+        // Input Update
+        const rangesInput = document.getElementById('page-ranges');
+        if (rangesInput) {
+            const sorted = Array.from(selectedPages).sort((a, b) => a - b);
+            let ranges = [];
+            for (let i = 0; i < sorted.length; i++) {
+                const start = sorted[i];
+                let end = start;
+                while (i + 1 < sorted.length && sorted[i + 1] === end + 1) {
+                    end++;
+                    i++;
+                }
+                if (start === end) ranges.push(start);
+                else ranges.push(start + '-' + end);
+            }
+            rangesInput.value = ranges.join(', ');
+        }
+    }
+
+    // Reverse Sync: Input -> visual
+    const rangesInput = document.getElementById('page-ranges');
+    if (rangesInput) {
+        rangesInput.addEventListener('input', function () {
+            const val = this.value;
+            const newSelected = new Set();
+            if (val) {
+                const parts = val.split(',');
+                parts.forEach(part => {
+                    const range = part.trim().split('-');
+                    if (range.length === 2) {
+                        const start = parseInt(range[0]);
+                        const end = parseInt(range[1]);
+                        if (!isNaN(start) && !isNaN(end)) {
+                            const min = Math.min(start, end);
+                            const max = Math.max(start, end);
+                            for (let k = min; k <= max; k++) newSelected.add(k);
+                        }
+                    } else if (range.length === 1) {
+                        const p = parseInt(range[0]);
+                        if (!isNaN(p)) newSelected.add(p);
+                    }
+                });
+            }
+            selectedPages = newSelected;
+            // Update visual only
+            document.querySelectorAll('.page-container').forEach(container => {
+                const num = parseInt(container.dataset.pageNumber);
+                if (selectedPages.has(num)) container.classList.add('selected');
+                else container.classList.remove('selected');
+            });
+        });
+    }
+
+    // Scroll Buttons
+    document.getElementById('scroll-top-btn').addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+    document.getElementById('scroll-bottom-btn').addEventListener('click', () => {
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    });
+});
