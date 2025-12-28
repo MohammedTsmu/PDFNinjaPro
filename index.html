@@ -299,17 +299,41 @@
                             style="flex:1; min-width:200px;">
 
                         <div style="display:flex; gap:10px; align-items:center;">
-                            <input type="color" id="comment-color" value="#ff0000"
+                            <!-- Color -->
+                            <input type="color" id="comment-color" value="#ff0000" title="Text Color"
                                 style="width:40px; height:40px; border:none; border-radius:8px; cursor:pointer;">
 
-                            <select id="comment-size" class="form-control" style="width:80px;">
+                            <!-- Font Size -->
+                            <select id="comment-size" class="form-control" title="Font Size" style="width:70px;">
                                 <option value="12">12px</option>
                                 <option value="16">16px</option>
                                 <option value="20" selected>20px</option>
                                 <option value="24">24px</option>
                                 <option value="32">32px</option>
                                 <option value="48">48px</option>
+                                <option value="64">64px</option>
                             </select>
+
+                            <!-- Font Family -->
+                            <select id="comment-font" class="form-control" title="Font Family" style="width:110px;">
+                                <option value="Helvetica" selected>Helvetica</option>
+                                <option value="TimesRoman">Times</option>
+                                <option value="Courier">Courier</option>
+                            </select>
+
+                            <!-- Opacity -->
+                            <div style="display:flex; flex-direction:column; align-items:center; width:60px;">
+                                <label style="font-size:10px; margin:0;">Opacity</label>
+                                <input type="range" id="comment-opacity" min="0.1" max="1" step="0.1" value="1"
+                                    style="width:100%;">
+                            </div>
+
+                            <!-- Rotation -->
+                            <div style="display:flex; flex-direction:column; align-items:center; width:60px;">
+                                <label style="font-size:10px; margin:0;">Rotate</label>
+                                <input type="range" id="comment-rotation" min="-180" max="180" step="15" value="0"
+                                    style="width:100%;">
+                            </div>
                         </div>
 
                         <button id="download-commented-btn" class="btn btn-warning" style="white-space:nowrap;">

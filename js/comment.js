@@ -3,7 +3,7 @@
 
 let commentFile = null;
 let commentPdfDoc = null;
-let comments = []; // { id, pageIndex, x, y, text, color, size, element, canvasWidth, canvasHeight }
+let comments = []; // { id, pageIndex, x, y, text, color, size, fontName, opacity, rotation, element, canvasWidth, canvasHeight }
 
 // Global Drag State
 let draggingCommentId = null;
@@ -90,18 +90,15 @@ async function renderCommentPages() {
         const page = await commentPdfDoc.getPage(i);
         const viewport = page.getViewport({ scale: 1.0 });
 
-        // 1. Outer Container (Margins)
         const container = document.createElement('div');
         container.className = 'comment-page-container';
 
-        // 2. Strict Wrapper (Coordinate System)
         const wrapper = document.createElement('div');
         wrapper.className = 'comment-canvas-wrapper';
         wrapper.dataset.pageIndex = i;
         wrapper.style.width = viewport.width + 'px';
         wrapper.style.height = viewport.height + 'px';
 
-        // 3. Canvas
         const canvas = document.createElement('canvas');
         canvas.className = 'comment-page-canvas';
         canvas.width = viewport.width;
@@ -114,12 +111,8 @@ async function renderCommentPages() {
         container.appendChild(wrapper);
         workspace.appendChild(container);
 
-        // Click Event: Attached to the Wrapper (Strict Area)
         wrapper.addEventListener('click', (e) => {
-            // Check if we are dragging or clicking a comment/button
             if (draggingCommentId || e.target.closest('.comment-overlay')) return;
-
-            // Pass known viewport dimensions to store precise scaling reference
             addComment(i, e.offsetX, e.offsetY, wrapper, viewport.width, viewport.height);
         });
     }
@@ -129,6 +122,9 @@ function addComment(pageIndex, x, y, wrapper, canvasWidth, canvasHeight) {
     const textInput = document.getElementById('comment-input-text');
     const colorInput = document.getElementById('comment-color');
     const sizeInput = document.getElementById('comment-size');
+    const fontInput = document.getElementById('comment-font');
+    const opacityInput = document.getElementById('comment-opacity');
+    const rotationInput = document.getElementById('comment-rotation');
 
     const text = textInput.value.trim();
     if (!text) {
@@ -140,6 +136,9 @@ function addComment(pageIndex, x, y, wrapper, canvasWidth, canvasHeight) {
 
     const color = colorInput.value;
     const size = parseInt(sizeInput.value);
+    const fontName = fontInput.value;
+    const opacity = parseFloat(opacityInput.value);
+    const rotation = parseInt(rotationInput.value);
 
     const id = Date.now() + Math.random().toString();
 
@@ -150,10 +149,17 @@ function addComment(pageIndex, x, y, wrapper, canvasWidth, canvasHeight) {
     commentEl.style.color = color;
     commentEl.style.fontSize = size + 'px';
 
-    // Position
+    // Apply New Styles
+    commentEl.style.fontFamily = fontName === 'TimesRoman' ? 'Times New Roman, serif' :
+        fontName === 'Courier' ? 'Courier New, monospace' :
+            'Helvetica, Arial, sans-serif';
+    commentEl.style.opacity = opacity;
+
+    // Position & Rotation
     commentEl.style.left = x + 'px';
     commentEl.style.top = y + 'px';
-    commentEl.style.transform = 'translate(-50%, -50%)';
+    // Translate -50% is for centering. Rotation is added on top.
+    commentEl.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
 
     // Delete Button
     const delBtn = document.createElement('div');
@@ -182,14 +188,17 @@ function addComment(pageIndex, x, y, wrapper, canvasWidth, canvasHeight) {
 
     wrapper.appendChild(commentEl);
 
-    comments.push({ id, pageIndex, x, y, text, color, size, element: commentEl, canvasWidth, canvasHeight });
+    comments.push({
+        id, pageIndex, x, y,
+        text, color, size, fontName, opacity, rotation,
+        element: commentEl, canvasWidth, canvasHeight
+    });
 }
 
 function handleGlobalDragMove(e) {
     if (!draggingCommentId) return;
     e.preventDefault();
 
-    // Find comment in list
     const comment = comments.find(c => c.id === draggingCommentId);
     if (!comment) return;
 
@@ -199,11 +208,11 @@ function handleGlobalDragMove(e) {
     const newLeft = dragStartLeft + dx;
     const newTop = dragStartTop + dy;
 
-    // Update DOM (Visual)
+    // Update DOM
     comment.element.style.left = newLeft + 'px';
     comment.element.style.top = newTop + 'px';
 
-    // Update State (Logic)
+    // Update State
     comment.x = newLeft;
     comment.y = newTop;
 }
@@ -238,33 +247,64 @@ async function saveCommentedPDF() {
         const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
         const pages = pdfDoc.getPages();
 
-        const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+        // Load fonts
+        const helveticaFont = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+        const timesFont = await pdfDoc.embedFont(PDFLib.StandardFonts.TimesRoman);
+        const courierFont = await pdfDoc.embedFont(PDFLib.StandardFonts.Courier);
+
+        const fonts = {
+            'Helvetica': helveticaFont,
+            'TimesRoman': timesFont,
+            'Courier': courierFont
+        };
 
         comments.forEach(c => {
             const page = pages[c.pageIndex - 1]; // 0-based
             const { width, height } = page.getSize();
 
-            // Calculate Ratios: PDF Points / Screen Pixels
-            // Fallback to width if canvasWidth missing (old comments?)
             const scaleX = width / (c.canvasWidth || width);
             const scaleY = height / (c.canvasHeight || height);
 
-            // Measure Text Width in PDF font
+            const font = fonts[c.fontName] || helveticaFont;
+
             const textWidth = font.widthOfTextAtSize(c.text, c.size);
             const textHeight = font.heightAtSize(c.size);
 
-            // Scale coordinates
             const scaledX = c.x * scaleX;
             const scaledY = c.y * scaleY;
 
-            // FIX: Center Offset
-            // PDF DrawText starts at X.
-            // HTML Center is c.x.
-            // So PDF X must be (Center - HalfWidth)
-            const pdfX = scaledX - (textWidth / 2);
+            // Scaled Center Point (Target)
+            const cx = scaledX;
+            const cy = height - scaledY; // Cartesian Y
 
-            // Y Axis Inversion
-            const pdfY = height - scaledY - (textHeight / 4);
+            // Rotation Correction
+            // The UI rotates around the center (cx, cy).
+            // pdf-lib rotates around the anchor (x, y).
+            // We need to calculate where to place the anchor (x, y) such that 
+            // the center of the text ends up at (cx, cy) after rotation.
+
+            // Vector from Anchor to Center (Unrotated)
+            // V = (textWidth / 2, textHeight / 4)  <-- using our heuristic offset
+            const ox = textWidth / 2;
+            const oy = textHeight / 4;
+
+            // Rotation Angle (Radians)
+            // pdf-lib rotates CCW. CSS rotation (c.rotation) is typically CW in UI logic usually,
+            // but let's match the rotation direction passed to drawText.
+            // We pass `degrees(-c.rotation)`. 
+            // If c.rotation is 45 (CW), we pass -45 (CCW) to PDF.
+            // The correction vector must be rotated by THIS SAME ANGLE.
+            const rad = (-c.rotation * Math.PI) / 180;
+
+            // Rotate Vector V by rad
+            // x' = x*cos - y*sin
+            // y' = x*sin + y*cos
+            const rotatedOx = ox * Math.cos(rad) - oy * Math.sin(rad);
+            const rotatedOy = ox * Math.sin(rad) + oy * Math.cos(rad);
+
+            // New Anchor Position = TargetCenter - RotatedVector
+            const pdfX = cx - rotatedOx;
+            const pdfY = cy - rotatedOy;
 
             const rgbColor = hexToRgb(c.color);
 
@@ -274,6 +314,8 @@ async function saveCommentedPDF() {
                 size: c.size,
                 font: font,
                 color: PDFLib.rgb(rgbColor.r / 255, rgbColor.g / 255, rgbColor.b / 255),
+                opacity: c.opacity,
+                rotate: PDFLib.degrees(-c.rotation)
             });
         });
 
