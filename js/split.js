@@ -244,6 +244,15 @@ document.getElementById('split-btn').addEventListener('click', async function ()
     const fileInput = document.getElementById('pdf-upload');
     const file = fileInput.files[0];
 
+    // Reset previous download states
+    const dlLink = document.getElementById('download-link');
+    if (dlLink) {
+        dlLink.style.display = 'none';
+        dlLink.href = '#';
+    }
+    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Splitting...';
+    this.disabled = true;
+
     if (file) {
         console.log('Preparing to split PDF...');
         const fileReader = new FileReader();
@@ -319,8 +328,17 @@ document.getElementById('split-btn').addEventListener('click', async function ()
 
             const downloadLink = document.getElementById('download-link');
             downloadLink.href = url;
-            downloadLink.download = `${chapterName}.pdf`;
-            downloadLink.style.display = 'inline-flex';
+            downloadLink.download = chapterName + '.pdf';
+            downloadLink.style.display = 'inline-block';
+            downloadLink.textContent = 'Download Split PDF';
+
+            // Restore button state
+            const splitBtn = document.getElementById('split-btn');
+            splitBtn.innerHTML = '<i class="fas fa-check"></i> Done';
+            splitBtn.disabled = false;
+            setTimeout(() => {
+                splitBtn.innerHTML = '<i class="fas fa-cut"></i> Split PDF';
+            }, 2000);
 
             const notification = document.getElementById('notification');
             notification.innerHTML = `PDF split successfully! Contains ${finalPageIndices.length} pages.`;
