@@ -1230,3 +1230,44 @@ body {
     cursor: grabbing !important;
 }
 
+
+/* Drag Handle Icon */
+.comment-drag-handle {
+    position: absolute;
+    top: -15px;
+    left: -15px;
+    width: 24px;
+    height: 24px;
+    background: #ef4444;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    font-size: 12px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    opacity: 0; /* Hidden by default */
+    transition: opacity 0.2s, transform 0.2s;
+    z-index: 10001;
+}
+
+/* Show Handle on Comment Hover */
+.comment-overlay:hover .comment-drag-handle {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+/* Hover Border for Comment */
+.comment-overlay:hover {
+    outline: 2px dashed rgba(0, 0, 0, 0.3); /* Explicit outline on hover */
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Drag State for Comment */
+.comment-overlay.is-dragging {
+    /* Existing rules forced visible */
+    outline: 3px solid #ef4444 !important;
+    transform: translate(-50%, -50%) scale(1.15) !important;
+}
+

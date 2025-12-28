@@ -78,7 +78,76 @@ document.addEventListener('DOMContentLoaded', () => {
     bindReset('lbl-size', 'comment-size', '20');
     bindReset('lbl-font', 'comment-font', 'Helvetica');
 
-});
+
+    // JS-Based Sticky Toolbar (Robust Fallback)
+    const toolbar = document.getElementById('comment-toolbar');
+    const toolbarPlaceholder = document.getElementById('comment-toolbar-placeholder');
+
+    if (toolbar && toolbarPlaceholder) {
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 200) {
+                toolbar.classList.add('is-sticky');
+                toolbarPlaceholder.style.display = 'block';
+            } else {
+                toolbar.classList.remove('is-sticky');
+                toolbarPlaceholder.style.display = 'none';
+            }
+        });
+    }
+
+    // Ghost Cursor Logic
+    const ghost = document.createElement('div');
+    ghost.id = 'comment-ghost';
+    ghost.innerText = "Type here...";
+    document.body.appendChild(ghost);
+
+    const updateGhostStyle = () => {
+        const size = document.getElementById('comment-size') ? document.getElementById('comment-size').value : 20;
+        const color = document.getElementById('comment-color') ? document.getElementById('comment-color').value : '#000';
+        const font = document.getElementById('comment-font') ? document.getElementById('comment-font').value : 'Helvetica';
+        const opacity = document.getElementById('comment-opacity') ? document.getElementById('comment-opacity').value : 1;
+        const rotation = document.getElementById('comment-rotation') ? document.getElementById('comment-rotation').value : 0;
+
+        ghost.style.fontSize = size + 'px';
+        ghost.style.color = color;
+        ghost.style.fontFamily = font;
+        ghost.style.opacity = opacity;
+        ghost.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
+    };
+
+    // Update ghost when inputs change
+    const inputs = ['comment-size', 'comment-color', 'comment-font', 'comment-opacity', 'comment-rotation'];
+    inputs.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', updateGhostStyle);
+    });
+
+    // Show/Hide Ghost on Canvas
+    // Use event delegation for performance
+    document.addEventListener('mousemove', (e) => {
+        // Hide if typing (contentEditable focused)
+        if (document.activeElement && document.activeElement.isContentEditable) {
+            ghost.style.display = 'none';
+            return;
+        }
+
+        // Hide if hovering over an existing comment or overlay
+        if (e.target.closest('.comment-overlay') || e.target.closest('.comment-drag-handle')) {
+            ghost.style.display = 'none';
+            return;
+        }
+
+        if (e.target.closest('.comment-page-canvas')) {
+            ghost.style.display = 'block';
+            ghost.style.left = e.pageX + 'px';
+            ghost.style.top = e.pageY + 'px';
+            updateGhostStyle();
+        } else {
+            ghost.style.display = 'none';
+        }
+    });
+
+}); // END DOMContentLoaded
 
 async function handleCommentFile(file) {
     commentFile = file;
@@ -87,7 +156,7 @@ async function handleCommentFile(file) {
     document.getElementById('comment-drop-zone').classList.add('hidden');
     document.getElementById('comment-file-info').classList.remove('hidden');
     document.getElementById('comment-toolbar').classList.remove('hidden');
-    document.getElementById('comment-main-container').classList.remove('hidden'); // Show Layout
+    document.getElementById('comment-main-container').classList.remove('hidden'); // Show layout
 
     document.getElementById('comment-filename').textContent = file.name;
     document.getElementById('comment-filesize').textContent = (file.size / (1024 * 1024)).toFixed(2) + " MB";
@@ -196,68 +265,9 @@ async function renderCommentPages() {
         el.dataset.pIndex = idx + 1; // Store page index
         observer.observe(el);
     });
+}
 
-    // JS-Based Sticky Toolbar (Robust Fallback)
-    const toolbar = document.getElementById('comment-toolbar');
-    const toolbarPlaceholder = document.getElementById('comment-toolbar-placeholder');
-
-    if (toolbar && toolbarPlaceholder) {
-        window.addEventListener('scroll', () => {
-            if (window.scrollY > 200) {
-                toolbar.classList.add('is-sticky');
-                toolbarPlaceholder.style.display = 'block';
-            } else {
-                toolbar.classList.remove('is-sticky');
-                toolbarPlaceholder.style.display = 'none';
-            }
-        });
-    }
-
-    // Ghost Cursor Logic
-    const ghost = document.createElement('div');
-    ghost.id = 'comment-ghost';
-    ghost.innerText = "Type here...";
-    document.body.appendChild(ghost);
-
-    const updateGhostStyle = () => {
-        ghost.style.fontSize = document.getElementById('comment-size').value + 'px';
-        ghost.style.color = document.getElementById('comment-color').value;
-        ghost.style.fontFamily = document.getElementById('comment-font').value;
-        ghost.style.opacity = document.getElementById('comment-opacity').value;
-        ghost.style.transform = `translate(-50%, -50%) rotate(${document.getElementById('comment-rotation').value}deg)`;
-    };
-
-    // Update ghost when inputs change
-    ['comment-size', 'comment-color', 'comment-font', 'comment-opacity', 'comment-rotation'].forEach(id => {
-        document.getElementById(id).addEventListener('input', updateGhostStyle);
-    });
-
-    // Show/Hide Ghost on Canvas
-    // Use event delegation for performance
-    document.addEventListener('mousemove', (e) => {
-        // Hide if typing (contentEditable focused)
-        if (document.activeElement && document.activeElement.isContentEditable) {
-            ghost.style.display = 'none';
-            return;
-        }
-
-        // Hide if hovering over an existing comment or overlay
-        if (e.target.closest('.comment-overlay')) {
-            ghost.style.display = 'none';
-            return;
-        }
-
-        if (e.target.closest('.comment-page-canvas')) {
-            ghost.style.display = 'block';
-            ghost.style.left = e.pageX + 'px';
-            ghost.style.top = e.pageY + 'px';
-            updateGhostStyle();
-        } else {
-            ghost.style.display = 'none';
-        }
-    });
-
-} // END DOMContentLoaded 
+// --- NEW WRAPPER IMPLEMENTATION ---
 
 function addComment(pageIndex, x, y, wrapper, canvasWidth, canvasHeight) {
     // Current Settings
@@ -267,9 +277,6 @@ function addComment(pageIndex, x, y, wrapper, canvasWidth, canvasHeight) {
     const opacityInput = document.getElementById('comment-opacity');
     const rotationInput = document.getElementById('comment-rotation');
 
-    // No initial text
-    const text = "";
-
     const color = colorInput.value;
     const size = parseInt(sizeInput.value);
     const fontName = fontInput.value;
@@ -278,63 +285,92 @@ function addComment(pageIndex, x, y, wrapper, canvasWidth, canvasHeight) {
 
     const id = Date.now() + Math.random().toString();
 
-    const commentEl = document.createElement('div');
-    commentEl.className = 'comment-overlay';
-    commentEl.dataset.id = id;
-    commentEl.contentEditable = "true"; // Click to Type!
+    // 1. Wrapper (Position, Rotation, Opacity)
+    // This element moves, but doesn't contain text text directly (except via child)
+    const container = document.createElement('div');
+    container.className = 'comment-overlay'; // Keep class for basic positioning styles
+    container.dataset.id = id;
+    container.style.position = 'absolute';
+    container.style.left = x + 'px';
+    container.style.top = y + 'px';
+    container.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
+    container.style.opacity = opacity;
+    container.style.zIndex = '100'; // Base Z
 
-    // Initial content (placeholder-like behavior handled by CSS or just focus)
-    commentEl.innerText = "";
+    // Clean up incompatible styles from .comment-overlay if any (reset some basics)
+    container.style.display = 'flex'; // Help with alignment?
+    container.style.flexDirection = 'column';
+    container.style.pointerEvents = 'auto';
+    container.style.minWidth = "20px";
+    container.style.minHeight = "1em";
 
-    // Styling
-    commentEl.style.color = color;
-    commentEl.style.fontSize = size + 'px';
-    commentEl.style.fontFamily = fontName === 'TimesRoman' ? 'Times New Roman, serif' :
-        fontName === 'Courier' ? 'Courier New, monospace' :
-            'Helvetica, Arial, sans-serif';
-    commentEl.style.opacity = opacity;
-    commentEl.style.whiteSpace = "nowrap"; // Keep it one line initially, or "pre-wrap"
-    commentEl.style.minWidth = "20px";
-    commentEl.style.minHeight = "1em";
-    commentEl.style.outline = "2px dashed rgba(255,255,255,0.5)"; // Outline when editing
-    commentEl.style.padding = "2px";
-    commentEl.style.cursor = "text";
+    // 2. UI Controls (Handle, Delete) - NOT CONTENT EDITABLE
 
-    // Position & Rotation
-    commentEl.style.left = x + 'px';
-    commentEl.style.top = y + 'px';
-    // Translate -50% -50% centering
-    // BUT for typing, user expects top-left or centered?
-    // Let's keep centered as it is the current logic, but typing expands outwards.
-    // To make left-align typing easier, we might want translate(0, -50%)?
-    // Let's stick to center for now.
-    commentEl.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
+    // Drag Handle
+    const dragHandle = document.createElement('div');
+    dragHandle.className = 'comment-drag-handle';
+    dragHandle.innerHTML = '<i class="fas fa-arrows-alt"></i>';
+    dragHandle.title = "Drag to Move";
+    dragHandle.contentEditable = "false";
+    dragHandle.style.userSelect = "none";
+    dragHandle.style.cursor = "grab";
+    container.appendChild(dragHandle);
 
-    // Delete Button (Hidden while editing)
+    // Delete Button
     const delBtn = document.createElement('div');
     delBtn.className = 'comment-delete-btn';
     delBtn.innerHTML = '<i class="fas fa-times"></i>';
-    delBtn.style.display = 'none'; // Initially hidden
+    delBtn.style.display = 'none';
+    delBtn.contentEditable = "false";
+    delBtn.style.userSelect = "none";
     delBtn.onclick = (e) => {
         e.stopPropagation();
         removeComment(id);
     };
-    commentEl.appendChild(delBtn);
+    container.appendChild(delBtn);
 
-    // Event: Lose Focus (Save or Delete)
-    commentEl.onblur = () => {
-        const content = commentEl.innerText.trim();
+    // 3. Text Content Area (Editable)
+    const textDiv = document.createElement('div');
+    textDiv.className = 'comment-text-content';
+    textDiv.contentEditable = "true";
+    textDiv.spellcheck = false;
+    textDiv.innerText = ""; // Start empty
+
+    // Apply Text Styles
+    textDiv.style.color = color;
+    textDiv.style.fontSize = size + 'px';
+    textDiv.style.fontFamily = fontName === 'TimesRoman' ? 'Times New Roman, serif' :
+        fontName === 'Courier' ? 'Courier New, monospace' :
+            'Helvetica, Arial, sans-serif';
+    textDiv.style.minWidth = "20px";
+    textDiv.style.minHeight = "1em";
+    textDiv.style.whiteSpace = "nowrap";
+    textDiv.style.outline = "2px dashed rgba(255,255,255,0.5)";
+    textDiv.style.padding = "2px";
+    textDiv.style.cursor = "text";
+
+    // Prevent dragging from text
+    textDiv.onmousedown = (e) => e.stopPropagation();
+
+    container.appendChild(textDiv);
+
+    // --- Logic ---
+
+    // Blur (Save/Delete)
+    textDiv.onblur = () => {
+        const content = textDiv.innerText.trim();
         if (!content) {
-            // Remove if empty
             removeComment(id);
         } else {
-            // Save Valid Comment
-            commentEl.contentEditable = "false";
-            commentEl.style.outline = "none";
-            commentEl.style.cursor = "move";
+            // Save
+            textDiv.style.outline = "none";
             delBtn.style.display = 'flex';
 
-            // Update Array
+            // Reset Ghost (Just in case)
+            const ghost = document.getElementById('comment-ghost');
+            if (ghost) ghost.style.display = 'none';
+
+            // Store Data
             const existing = comments.find(c => c.id === id);
             if (existing) {
                 existing.text = content;
@@ -342,90 +378,89 @@ function addComment(pageIndex, x, y, wrapper, canvasWidth, canvasHeight) {
         }
     };
 
-    // Event: Keydown (Enter to finish?) 
-    commentEl.onkeydown = (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            commentEl.blur(); // Trigger blur to save
-        }
-    };
-
-    // Event: Double Click (Edit)
-    commentEl.ondblclick = (e) => {
+    // Double Click (Edit)
+    container.ondblclick = (e) => {
         e.stopPropagation();
-        commentEl.contentEditable = "true";
-        commentEl.focus();
-        commentEl.style.outline = "2px dashed rgba(255,255,255,0.5)";
-        commentEl.style.cursor = "text";
+        textDiv.focus();
+        textDiv.style.outline = "2px dashed rgba(255,255,255,0.5)";
         delBtn.style.display = 'none';
-
-        // Select all text for easy replacement? Or just caret?
-        // Let's just focus.
     };
 
-    // Drag Logic (Revised for ContentEditable)
+    textDiv.onfocus = () => {
+        textDiv.style.outline = "2px dashed rgba(255,255,255,0.5)";
+        delBtn.style.display = 'none';
+        // Hide Ghost
+        const ghost = document.getElementById('comment-ghost');
+        if (ghost) ghost.style.display = 'none';
+    }
+
+    // Drag Logic (Handle Only)
     const startDrag = (e) => {
-        if (e.target !== commentEl) return; // Allow text selection inside
+        // Only allow drag if clicking the Handle
+        if (!e.target.closest('.comment-drag-handle')) return;
+
         draggingCommentId = id;
         dragStartX = e.clientX;
         dragStartY = e.clientY;
-        dragStartLeft = parseFloat(commentEl.style.left);
-        dragStartTop = parseFloat(commentEl.style.top);
+        dragStartLeft = parseFloat(container.style.left);
+        dragStartTop = parseFloat(container.style.top);
 
-        // Visual Effect
-        commentEl.classList.add('is-dragging');
+        // Visual Effect on CONTAINER
+        container.classList.add('is-dragging');
 
-        // Disable contentEditable during drag prevents cursor jumping
-        commentEl.contentEditable = "false";
+        // Disable contentEditable during drag (redundant but safe)
+        // container.contentEditable = "false"; 
 
         e.preventDefault();
+        e.stopPropagation();
     };
 
-    commentEl.addEventListener('mousedown', startDrag);
+    container.addEventListener('mousedown', startDrag);
 
     const stopDrag = () => {
         if (draggingCommentId === id) {
-            commentEl.classList.remove('is-dragging');
-            commentEl.contentEditable = "true";
+            container.classList.remove('is-dragging');
             draggingCommentId = null;
 
             // Update Data
             const cData = comments.find(c => c.id === id);
             if (cData) {
-                cData.x = parseFloat(commentEl.style.left);
-                cData.y = parseFloat(commentEl.style.top);
+                cData.x = parseFloat(container.style.left);
+                cData.y = parseFloat(container.style.top);
             }
         }
     };
 
-    // window mouseup is needed to catch drops outside element, handled by Global Listener
-    commentEl.addEventListener('mouseup', stopDrag);
+    container.addEventListener('mouseup', stopDrag);
 
-    wrapper.appendChild(commentEl);
+    wrapper.appendChild(container);
 
     comments.push({
         id, pageIndex, x, y,
-        text: "", // Placeholder, updated on blur
+        text: "",
         color, size, fontName, opacity, rotation,
-        element: commentEl, canvasWidth, canvasHeight
+        element: container, // Reference Wrapper
+        textElement: textDiv, // Reference Text
+        canvasWidth, canvasHeight
     });
 
     // Immediately Focus to Type
     setTimeout(() => {
-        commentEl.focus();
+        textDiv.focus();
         const ghost = document.getElementById('comment-ghost');
         if (ghost) ghost.style.display = 'none';
     }, 10);
 
-    // Ensure ghost stays hidden while typing
+    // Ghost Hiding Listeners
     const hideGhost = () => {
         const ghost = document.getElementById('comment-ghost');
         if (ghost) ghost.style.display = 'none';
     };
-    commentEl.addEventListener('keydown', hideGhost);
-    commentEl.addEventListener('input', hideGhost);
-    commentEl.addEventListener('focus', hideGhost);
+    textDiv.addEventListener('keydown', hideGhost);
+    textDiv.addEventListener('input', hideGhost);
+    textDiv.addEventListener('focus', hideGhost);
 }
+
 
 function handleGlobalDragMove(e) {
     if (!draggingCommentId) return;
@@ -456,8 +491,7 @@ function handleGlobalDragEnd() {
     const comment = comments.find(c => c.id === draggingCommentId);
     if (comment && comment.element) {
         comment.element.classList.remove('is-dragging');
-        comment.element.contentEditable = "true";
-        comment.element.classList.remove('selected'); // Keep existing selected class removal
+        comment.element.classList.remove('selected');
     }
 
     draggingCommentId = null;
@@ -470,9 +504,6 @@ function removeComment(id) {
         comments.splice(idx, 1);
     }
 }
-
-// Helper to check for Arabic characters - Removed
-// function isArabic(text) { ... }
 
 async function saveCommentedPDF() {
     if (!commentFile) return;
@@ -487,26 +518,17 @@ async function saveCommentedPDF() {
         const pages = pdfDoc.getPages();
 
         // 1. Create a Hidden Helper Container for Snapshotting
-        // We will render each comment here, "cleanly" (without external scaling/zoom interference),
-        // take a snapshot, and then embed it.
         const helper = document.createElement('div');
         helper.style.position = 'absolute';
         helper.style.left = '-9999px';
         helper.style.top = '-9999px';
         helper.style.backgroundColor = 'transparent';
-        // Ensure browser renders it with high quality
         helper.style.transform = 'translateZ(0)';
         document.body.appendChild(helper);
 
         for (const c of comments) {
             const page = pages[c.pageIndex - 1];
             const { width, height } = page.getSize();
-
-            // Logic:
-            // 1. Render text into helper.
-            // 2. Capture with html2canvas (transparent bg).
-            // 3. Embed PNG.
-            // 4. Draw Image.
 
             // Reset helper
             helper.innerHTML = '';
@@ -519,11 +541,8 @@ async function saveCommentedPDF() {
             el.style.color = c.color;
             el.style.opacity = c.opacity;
             el.style.display = 'inline-block';
-            el.style.whiteSpace = 'pre-wrap'; // Preserve lines
-            el.style.lineHeight = '1.2';      // Normal line height
-
-            // Padding/Margins might be needed if html2canvas clips?
-            // "padding: 5px" helps avoid clipping edges of fancy fonts
+            el.style.whiteSpace = 'pre-wrap';
+            el.style.lineHeight = '1.2';
             el.style.padding = '5px';
 
             helper.appendChild(el);
@@ -533,8 +552,8 @@ async function saveCommentedPDF() {
 
             // Capture
             const canvas = await html2canvas(el, {
-                backgroundColor: null, // Transparent
-                scale: 2, // 2x scale for higher quality (Retina-like) 
+                backgroundColor: null,
+                scale: 2,
                 logging: false,
                 useCORS: true
             });
@@ -545,14 +564,9 @@ async function saveCommentedPDF() {
             const pngImage = await pdfDoc.embedPng(pngBuffer);
 
             // Calculate Dimensions
-            // The canvas is scaled by 2 (or whatever 'scale' opt is).
-            // We need to draw it at the original "visual" size on PDF.
-            // Provide a slight offset for the padding we added.
-
             const imgWidth = pngImage.width;
             const imgHeight = pngImage.height;
 
-            // Targeted PDF Width/Height (undoing the 2x capture scale)
             const drawWidth = imgWidth / 2;
             const drawHeight = imgHeight / 2;
 
