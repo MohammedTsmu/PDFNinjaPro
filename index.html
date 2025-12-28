@@ -804,8 +804,11 @@
                     const targetId = btn.getAttribute('data-target');
                     const workspace = document.getElementById('single-doc-workspace');
 
-                    // Toggle Workspace (Hide for Merge, Show for others)
-                    if (targetId === 'merge') {
+                    // Tools with their own self-contained UI (no shared workspace)
+                    const selfContainedTools = ['merge', 'rotate', 'reorder', 'background', 'images-to-pdf', 'comment', 'convert', 'extract'];
+
+                    // Toggle Workspace (Hide for self-contained tools, Show for others)
+                    if (selfContainedTools.includes(targetId)) {
                         if (workspace) workspace.classList.add('hidden');
                     } else {
                         if (workspace) workspace.classList.remove('hidden');
