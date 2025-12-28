@@ -1171,3 +1171,62 @@ body {
     min-width: 150px !important;
   }
 }
+/* --- Comment Tool UX Enhancements --- */
+
+/* Ghost Cursor (Visual Guide) */
+#comment-ghost {
+    position: absolute;
+    pointer-events: none; /* Let clicks pass through */
+    border: 1px dashed rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 5px;
+    white-space: nowrap;
+    z-index: 9999;
+    display: none; /* Hidden by default */
+    transform: translate(-50%, -50%); /* Centered on mouse */
+    font-family: inherit;
+    /* Neon glow for visibility */
+    text-shadow: 0 0 2px black; 
+    box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    border-radius: 4px;
+    transition: opacity 0.2s;
+}
+
+/* Comment Item Interactions */
+.comment-item {
+    cursor: grab;
+    transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.comment-item:hover {
+    border: 1px dashed rgba(255, 255, 255, 0.5);
+    background: rgba(0, 0, 0, 0.1); /* Slight highlight */
+}
+
+.comment-item:active {
+    cursor: grabbing;
+}
+
+/* Lift Up Effect when dragging */
+.comment-item.is-dragging {
+    transform: translate(-50%, -50%) scale(1.1) !important; /* Zoom up */
+    z-index: 10000 !important; /* Always on top */
+    box-shadow: 0 10px 20px rgba(0,0,0,0.4); /* Drop shadow */
+}
+
+/* Page Cursor override */
+.pdf-page-canvas {
+    cursor: text; /* I-Beam over pages */
+}
+
+
+/* FORCE DRAG VISIBILITY */
+.comment-item.is-dragging {
+    transform: translate(-50%, -50%) scale(1.2) !important;
+    z-index: 99999 !important;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.6) !important;
+    border: 2px solid #ef4444 !important; /* Bright Red Border */
+    background: rgba(255, 255, 255, 0.9) !important;
+    cursor: grabbing !important;
+}
+

@@ -199,88 +199,65 @@ async function renderCommentPages() {
 
     // JS-Based Sticky Toolbar (Robust Fallback)
     const toolbar = document.getElementById('comment-toolbar');
+    const toolbarPlaceholder = document.getElementById('comment-toolbar-placeholder');
 
-    // Create placeholder if not exists
-    let placeholder = document.getElementById('toolbar-placeholder');
-    if (!placeholder) {
-        placeholder = document.createElement('div');
-        placeholder.id = 'toolbar-placeholder';
-        placeholder.style.display = 'none'; // Initially hidden
-        toolbar.parentNode.insertBefore(placeholder, toolbar);
+    if (toolbar && toolbarPlaceholder) {
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 200) {
+                toolbar.classList.add('is-sticky');
+                toolbarPlaceholder.style.display = 'block';
+            } else {
+                toolbar.classList.remove('is-sticky');
+                toolbarPlaceholder.style.display = 'none';
+            }
+        });
     }
 
-    const handleScroll = () => {
-        if (toolbar.classList.contains('hidden')) return;
+    // Ghost Cursor Logic
+    const ghost = document.createElement('div');
+    ghost.id = 'comment-ghost';
+    ghost.innerText = "Type here...";
+    document.body.appendChild(ghost);
 
-        // Use placeholder or toolbar initial position
-        // If placeholder is active (block), use its top.
-        // If inactive (none), use toolbar's top.
-
-        let triggerPoint = 0;
-
-        if (placeholder.style.display === 'block') {
-            triggerPoint = placeholder.getBoundingClientRect().top;
-        } else {
-            triggerPoint = toolbar.getBoundingClientRect().top;
-        }
-
-        // If 'top' is <= 0 (relative to viewport), stick it.
-        // But 'top' changes as we scroll.
-        // We know the toolbar is near the top of the main area.
-        // A simpler check: Use window.scrollY vs the element's absolute offset.
-
-        // Let's rely on the placeholder's calculated 'top' relative to viewport window.
-        // If we are scrolling DOWN, top decreases.
-
-        if (triggerPoint <= 0) {
-            if (!toolbar.classList.contains('is-stuck')) {
-                const width = toolbar.offsetWidth;
-                const height = toolbar.offsetHeight;
-
-                placeholder.style.width = width + 'px';
-                placeholder.style.height = height + 'px';
-                placeholder.style.display = 'block';
-
-                toolbar.classList.add('is-stuck');
-                toolbar.style.position = 'fixed';
-                toolbar.style.top = '0';
-                toolbar.style.left = placeholder.getBoundingClientRect().left + 'px'; // Align with original position
-                toolbar.style.width = width + 'px';
-                toolbar.style.zIndex = '1000';
-                toolbar.style.boxShadow = '0 4px 15px rgba(0,0,0,0.3)';
-                toolbar.style.borderRadius = '0 0 8px 8px'; // Nice touch
-            }
-        } else {
-            // Unstick ONLY if we scroll BACK UP past the placeholder
-            // If the placeholder is visible, and its top is > 0, unstick.
-            if (placeholder.getBoundingClientRect().top > 0) {
-                if (toolbar.classList.contains('is-stuck')) {
-                    toolbar.classList.remove('is-stuck');
-                    toolbar.style.position = '';
-                    toolbar.style.top = '';
-                    toolbar.style.left = '';
-                    toolbar.style.width = '';
-                    toolbar.style.boxShadow = '';
-                    toolbar.style.borderRadius = '';
-                    placeholder.style.display = 'none';
-                }
-            }
-        }
+    const updateGhostStyle = () => {
+        ghost.style.fontSize = document.getElementById('comment-size').value + 'px';
+        ghost.style.color = document.getElementById('comment-color').value;
+        ghost.style.fontFamily = document.getElementById('comment-font').value;
+        ghost.style.opacity = document.getElementById('comment-opacity').value;
+        ghost.style.transform = `translate(-50%, -50%) rotate(${document.getElementById('comment-rotation').value}deg)`;
     };
 
-    // Attach to window scroll (since body scrolls)
-    window.addEventListener('scroll', handleScroll);
-    window.addEventListener('resize', () => {
-        // Reset on resize to recalculate widths
-        if (toolbar.classList.contains('is-stuck')) {
-            toolbar.style.width = placeholder.offsetWidth + 'px';
-            toolbar.style.left = placeholder.getBoundingClientRect().left + 'px';
+    // Update ghost when inputs change
+    ['comment-size', 'comment-color', 'comment-font', 'comment-opacity', 'comment-rotation'].forEach(id => {
+        document.getElementById(id).addEventListener('input', updateGhostStyle);
+    });
+
+    // Show/Hide Ghost on Canvas
+    // Use event delegation for performance
+    document.addEventListener('mousemove', (e) => {
+        // Hide if typing (contentEditable focused)
+        if (document.activeElement && document.activeElement.isContentEditable) {
+            ghost.style.display = 'none';
+            return;
+        }
+
+        // Hide if hovering over an existing comment or overlay
+        if (e.target.closest('.comment-overlay')) {
+            ghost.style.display = 'none';
+            return;
+        }
+
+        if (e.target.closest('.comment-page-canvas')) {
+            ghost.style.display = 'block';
+            ghost.style.left = e.pageX + 'px';
+            ghost.style.top = e.pageY + 'px';
+            updateGhostStyle();
+        } else {
+            ghost.style.display = 'none';
         }
     });
-}
 
-// Lock/Unlock logic removed as input is gone
-// document.addEventListener('DOMContentLoaded', ... ); 
+} // END DOMContentLoaded 
 
 function addComment(pageIndex, x, y, wrapper, canvasWidth, canvasHeight) {
     // Current Settings
@@ -386,28 +363,43 @@ function addComment(pageIndex, x, y, wrapper, canvasWidth, canvasHeight) {
         // Let's just focus.
     };
 
-    // Drag Start
-    commentEl.addEventListener('mousedown', (e) => {
-        if (e.target === delBtn) return;
-
-        // If editing, allow text selection (stop drag)
-        if (commentEl.isContentEditable) {
-            e.stopPropagation();
-            return;
-        }
-
-        e.preventDefault();
-        e.stopPropagation();
-
+    // Drag Logic (Revised for ContentEditable)
+    const startDrag = (e) => {
+        if (e.target !== commentEl) return; // Allow text selection inside
         draggingCommentId = id;
         dragStartX = e.clientX;
         dragStartY = e.clientY;
-
         dragStartLeft = parseFloat(commentEl.style.left);
         dragStartTop = parseFloat(commentEl.style.top);
 
-        commentEl.classList.add('selected');
-    });
+        // Visual Effect
+        commentEl.classList.add('is-dragging');
+
+        // Disable contentEditable during drag prevents cursor jumping
+        commentEl.contentEditable = "false";
+
+        e.preventDefault();
+    };
+
+    commentEl.addEventListener('mousedown', startDrag);
+
+    const stopDrag = () => {
+        if (draggingCommentId === id) {
+            commentEl.classList.remove('is-dragging');
+            commentEl.contentEditable = "true";
+            draggingCommentId = null;
+
+            // Update Data
+            const cData = comments.find(c => c.id === id);
+            if (cData) {
+                cData.x = parseFloat(commentEl.style.left);
+                cData.y = parseFloat(commentEl.style.top);
+            }
+        }
+    };
+
+    // window mouseup is needed to catch drops outside element, handled by Global Listener
+    commentEl.addEventListener('mouseup', stopDrag);
 
     wrapper.appendChild(commentEl);
 
@@ -421,7 +413,18 @@ function addComment(pageIndex, x, y, wrapper, canvasWidth, canvasHeight) {
     // Immediately Focus to Type
     setTimeout(() => {
         commentEl.focus();
+        const ghost = document.getElementById('comment-ghost');
+        if (ghost) ghost.style.display = 'none';
     }, 10);
+
+    // Ensure ghost stays hidden while typing
+    const hideGhost = () => {
+        const ghost = document.getElementById('comment-ghost');
+        if (ghost) ghost.style.display = 'none';
+    };
+    commentEl.addEventListener('keydown', hideGhost);
+    commentEl.addEventListener('input', hideGhost);
+    commentEl.addEventListener('focus', hideGhost);
 }
 
 function handleGlobalDragMove(e) {
@@ -449,10 +452,14 @@ function handleGlobalDragMove(e) {
 function handleGlobalDragEnd() {
     if (!draggingCommentId) return;
 
+    // Find Element and Restore State
     const comment = comments.find(c => c.id === draggingCommentId);
-    if (comment) {
-        comment.element.classList.remove('selected');
+    if (comment && comment.element) {
+        comment.element.classList.remove('is-dragging');
+        comment.element.contentEditable = "true";
+        comment.element.classList.remove('selected'); // Keep existing selected class removal
     }
+
     draggingCommentId = null;
 }
 
