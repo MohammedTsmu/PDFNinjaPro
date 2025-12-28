@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![PDF Ninja Pro Banner](https://github.com/MohammedTsmu/PDFNinjaPro/blob/main/Screenshot%202024-06-25%20090014.png)
+![PDF Ninja Pro Banner](https://github.com/MohammedTsmu/PDFNinjaPro/blob/main/main.png)
 
 **Next-Gen PDF Tools** — A modern, feature-rich web application for all your PDF needs.
 
@@ -34,9 +34,7 @@
 
 <div align="center">
 
-![Screenshot 1](https://github.com/MohammedTsmu/PDFNinjaPro/blob/main/Screenshot%202024-06-25%20090042.png)
-
-![Screenshot 2](https://github.com/MohammedTsmu/PDFNinjaPro/blob/main/Screenshot%202024-06-25%20090053.png)
+![Screenshot 1](https://github.com/MohammedTsmu/PDFNinjaPro/blob/main/pages.png)
 
 </div>
 
