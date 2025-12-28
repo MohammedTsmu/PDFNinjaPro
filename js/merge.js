@@ -110,7 +110,7 @@ function updateMergeUI() {
         const downDisabled = isLast ? 'disabled style="opacity:0.3"' : '';
 
         // Thumbnail or placeholder
-        const thumbSrc = item.thumbnail || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiPjxwYXRoIGQ9Ik0xNCAySDZhhTIgMiAwIDAgMCAyIDJ2MTZhMiAyIDAgMCAwIDIgMmgyYTIgMiAwIDAgMCAyLTJWMTRsLTUtNXoiLz48cG9seWxpbmUgcG9pbnRzPSIxNCAyIDE0IDggMjAgOCIvPjwvc3ZnPg=='; // PDF Icon
+        const thumbSrc = item.thumbnail || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTRhM2I4IiBzdHJva2Utd2lkdGg9IjIiPjxwYXRoIGQ9Ik0xNCAySDZhhTIgMiAwIDAgMCAyIDJ2MTZhMiAyIDAgMCAwIDIgMmgyYTIgMiAwIDAgMCAyLTJWMTRsLTUtNXoiLz48cG9seWxpbmUgcG9pbnRzPSIxNCAyIDE0IDggMjAgOCIvPjwvc3ZnPg==';
 
         card.innerHTML = `
             <div class="merge-thumb">
@@ -122,8 +122,13 @@ function updateMergeUI() {
                 <div class="merge-controls">
                     <div class="merge-input-group" title="Page Range (e.g. 1-5, 8)">
                         <span class="merge-input-label">Pages:</span>
-                        <input type="text" value="${item.range}" placeholder="All" onchange="updateMergeProp('${item.id}', 'range', this.value)">
+                        <input type="text" value="${item.range}" placeholder="All" onchange="updateMergeProp('${item.id}', 'range', this.value)" id="range-input-${item.id}">
                     </div>
+                    
+                    <button class="rotate-btn" onclick="openMergeSelectionModal('${item.id}')" title="Select Pages Grid">
+                        <i class="fas fa-th"></i>
+                    </button>
+                    
                     <button class="rotate-btn" onclick="rotateMergeFile('${item.id}')" title="Rotate 90°">
                         <i class="fas fa-sync-alt" style="transform: rotate(${item.rotation}deg); transition: transform 0.3s;"></i>
                     </button>
@@ -193,6 +198,246 @@ window.moveMergeFile = (index, direction) => {
     mergeState[newIndex] = temp;
     updateMergeUI();
 };
+
+
+// Modal Logic
+let currentModalId = null;
+let currentModalSelection = new Set();
+const modal = document.getElementById('merge-selection-modal');
+const modalGrid = document.getElementById('modal-page-grid');
+const modalCount = document.getElementById('modal-selected-count');
+
+window.openMergeSelectionModal = async (id) => {
+    const item = mergeState.find(x => x.id === id);
+    if (!item) return;
+
+    currentModalId = id;
+    currentModalSelection = new Set();
+
+    modal.classList.remove('hidden');
+    modalGrid.innerHTML = '<div class="spinner"></div>';
+
+    try {
+        const arrayBuffer = await item.file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+        const totalPages = pdf.numPages;
+
+        modalGrid.innerHTML = ''; // Clear spinner
+
+        // 1. Determine Selection
+        let initialIndices = new Set();
+        if (!item.range || item.range.toLowerCase() === 'all') {
+            for (let i = 0; i < totalPages; i++) initialIndices.add(i);
+        } else {
+            // Basic parser logic
+            const rangeStr = item.range.replace(/\s/g, '');
+            const parts = rangeStr.split(',');
+            parts.forEach(p => {
+                const r = p.split('-');
+                if (r.length === 2) {
+                    const start = parseInt(r[0]);
+                    const end = parseInt(r[1]);
+                    if (!isNaN(start) && !isNaN(end)) {
+                        const min = Math.min(start, end);
+                        const max = Math.max(start, end);
+                        for (let k = min; k <= max; k++) initialIndices.add(k - 1);
+                    }
+                } else {
+                    const page = parseInt(r[0]);
+                    if (!isNaN(page)) initialIndices.add(page - 1);
+                }
+            });
+        }
+        currentModalSelection = initialIndices;
+        updateModalCount();
+
+        // 2. Create Skeleton DOM (Fast)
+        const canvasMap = new Map(); // Store ref to canvas
+
+        for (let i = 1; i <= totalPages; i++) {
+            const pageIndex = i - 1;
+            const isSelected = currentModalSelection.has(pageIndex);
+
+            const div = document.createElement('div');
+            div.className = `modal-page-item ${isSelected ? 'selected' : ''}`;
+            div.dataset.index = pageIndex;
+            div.innerHTML = `
+                <div class="check-icon"><i class="fas fa-check"></i></div>
+                <div class="modal-page-num">${i}</div>
+                <canvas></canvas> 
+            `;
+
+            div.onclick = () => {
+                if (currentModalSelection.has(pageIndex)) {
+                    currentModalSelection.delete(pageIndex);
+                    div.classList.remove('selected');
+                } else {
+                    currentModalSelection.add(pageIndex);
+                    div.classList.add('selected');
+                }
+                updateModalCount();
+            };
+
+            modalGrid.appendChild(div);
+            canvasMap.set(i, div.querySelector('canvas'));
+        }
+
+        // 3. Render Batches (Prevent Main Thread Freeze)
+        renderThumbnailsSequentially(pdf, totalPages, canvasMap);
+
+    } catch (e) {
+        console.error(e);
+        modalGrid.innerHTML = '<p class="text-danger">Error loading PDF pages.</p>';
+    }
+};
+
+async function renderThumbnailsSequentially(pdf, total, canvasMap) {
+    const BATCH_SIZE = 5;
+    for (let i = 1; i <= total; i += BATCH_SIZE) {
+        const batchPromises = [];
+        for (let j = 0; j < BATCH_SIZE && (i + j) <= total; j++) {
+            batchPromises.push(renderOnePage(pdf, i + j, canvasMap.get(i + j)));
+        }
+        await Promise.all(batchPromises);
+        // Small breathing room for UI
+        await new Promise(r => setTimeout(r, 10));
+    }
+}
+
+async function renderOnePage(pdf, pageNum, canvas) {
+    if (!canvas) return;
+    try {
+        const page = await pdf.getPage(pageNum);
+        const scale = 0.3;
+        const viewport = page.getViewport({ scale: scale });
+        const context = canvas.getContext('2d');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        await page.render({ canvasContext: context, viewport: viewport }).promise;
+    } catch (err) {
+        console.warn(`Error rendering page ${pageNum}`, err);
+    }
+}
+
+function getRangeStringFromSelection(selectionSet) {
+    const sorted = Array.from(selectionSet).sort((a, b) => a - b);
+    if (sorted.length === 0) return "";
+
+    let ranges = [];
+    let start = sorted[0];
+    let prev = sorted[0];
+
+    for (let i = 1; i < sorted.length; i++) {
+        if (sorted[i] === prev + 1) {
+            prev = sorted[i];
+        } else {
+            ranges.push(start === prev ? (start + 1).toString() : `${start + 1}-${prev + 1}`);
+            start = sorted[i];
+            prev = sorted[i];
+        }
+    }
+    ranges.push(start === prev ? (start + 1).toString() : `${start + 1}-${prev + 1}`);
+    return ranges.join(", ");
+}
+
+function updateModalCount() {
+    modalCount.textContent = currentModalSelection.size;
+    const rangeStr = getRangeStringFromSelection(currentModalSelection);
+    const input = document.getElementById('modal-range-input');
+    if (input) input.value = rangeStr;
+}
+
+// Modal Buttons
+document.getElementById('close-modal-btn')?.addEventListener('click', () => {
+    modal.classList.add('hidden');
+});
+
+// Quick Select Logic
+function applyModalSelection(predicate) {
+    if (!currentModalId) return;
+    const total = document.querySelectorAll('#modal-page-grid .modal-page-item').length;
+
+    for (let i = 0; i < total; i++) {
+        const item = document.querySelector(`.modal-page-item[data-index="${i}"]`);
+        if (item) {
+            const shouldSelect = predicate(i, currentModalSelection.has(i));
+            if (shouldSelect) {
+                currentModalSelection.add(i);
+                item.classList.add('selected');
+            } else {
+                currentModalSelection.delete(i);
+                item.classList.remove('selected');
+            }
+        }
+    }
+    updateModalCount();
+}
+
+document.getElementById('modal-sel-all')?.addEventListener('click', () => applyModalSelection(() => true));
+document.getElementById('modal-sel-none')?.addEventListener('click', () => applyModalSelection(() => false));
+document.getElementById('modal-sel-inverse')?.addEventListener('click', () => applyModalSelection((i, isSelected) => !isSelected));
+document.getElementById('modal-sel-odd')?.addEventListener('click', () => applyModalSelection((i) => (i + 1) % 2 !== 0));
+document.getElementById('modal-sel-even')?.addEventListener('click', () => applyModalSelection((i) => (i + 1) % 2 === 0));
+
+document.getElementById('modal-range-apply')?.addEventListener('click', () => {
+    const val = document.getElementById('modal-range-input').value;
+    if (!val) return;
+
+    // Parse range (reuse logic ideally, but inline for now is fine)
+    const toSelect = new Set();
+    const parts = val.replace(/\s/g, '').split(',');
+    parts.forEach(p => {
+        const r = p.split('-');
+        if (r.length === 2) {
+            const start = parseInt(r[0]);
+            const end = parseInt(r[1]);
+            if (!isNaN(start) && !isNaN(end)) {
+                const min = Math.min(start, end);
+                const max = Math.max(start, end);
+                for (let k = min; k <= max; k++) toSelect.add(k - 1);
+            }
+        } else {
+            const page = parseInt(r[0]);
+            if (!isNaN(page)) toSelect.add(page - 1);
+        }
+    });
+
+    // Apply (Add to current or Replace? "Select Range" implies Adding usually, but Replacng is clearer for "Input". Let's Replace.)
+    // Actually, "Select Range" in a toolbar usually means "Add to selection" or "Set selection to this".
+    // Given the other buttons are toggle-ish, let's make this SET the selection for clarity.
+
+    currentModalSelection = toSelect;
+
+    // Update UI
+    const total = document.querySelectorAll('#modal-page-grid .modal-page-item').length;
+    for (let i = 0; i < total; i++) {
+        const item = document.querySelector(`.modal-page-item[data-index="${i}"]`);
+        if (item) {
+            if (currentModalSelection.has(i)) item.classList.add('selected');
+            else item.classList.remove('selected');
+        }
+    }
+    updateModalCount();
+});
+
+
+document.getElementById('save-selection-btn')?.addEventListener('click', () => {
+    if (!currentModalId) return;
+
+    // Convert Set to Range String using helper
+    const rangeStr = getRangeStringFromSelection(currentModalSelection);
+
+    // Update Input
+    const item = mergeState.find(x => x.id === currentModalId);
+    if (item) {
+        item.range = rangeStr;
+        // Update UI Input directly
+        const input = document.getElementById(`range-input-${currentModalId}`);
+        if (input) input.value = rangeStr;
+    }
+
+    modal.classList.add('hidden');
+});
 
 mergeBtn?.addEventListener('click', async function () {
     if (mergeState.length < 2) return;

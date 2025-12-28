@@ -292,6 +292,45 @@
         </main>
     </div>
 
+    <!-- Merge Selection Modal -->
+    <div id="merge-selection-modal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Select Pages</h3>
+                <button id="close-modal-btn" class="btn btn-sm btn-icon"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="modal-toolbar" style="display:flex; gap:10px; margin-bottom:15px; flex-wrap:wrap;">
+                <span class="text-muted" style="font-size:0.9em; align-self:center;">Quick Select:</span>
+                <button id="modal-sel-all" class="btn btn-sm btn-outline-light">All</button>
+                <button id="modal-sel-none" class="btn btn-sm btn-outline-light">None</button>
+                <button id="modal-sel-inverse" class="btn btn-sm btn-outline-light">Inverse</button>
+                <button id="modal-sel-odd" class="btn btn-sm btn-outline-light">Odd</button>
+                <button id="modal-sel-even" class="btn btn-sm btn-outline-light">Even</button>
+
+                <div
+                    style="flex:1; display:flex; justify-content:flex-end; gap:5px; align-items:center; min-width:200px;">
+                    <input type="text" id="modal-range-input" class="form-control" placeholder="e.g. 1-5, 8"
+                        style="padding:4px 8px; font-size:0.9em; width:120px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.2); color:white; border-radius:4px;">
+                    <button id="modal-range-apply" class="btn btn-sm btn-info">Select Range</button>
+                </div>
+            </div>
+
+            <p class="text-muted" style="margin-bottom: 5px; font-size: 0.8em;">Click pages to toggle individually.</p>
+
+            <div id="modal-page-grid" class="modal-grid">
+                <!-- Pages injected here -->
+            </div>
+
+            <div class="modal-footer">
+                <div class="selection-summary">
+                    <span id="modal-selected-count">0</span> pages selected
+                </div>
+                <button id="save-selection-btn" class="btn btn-primary">Confirm Selection</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Global Blocking Spinner -->
     <div id="spinner" class="spinner-container hidden">
         <div class="spinner"></div>
