@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PDF Ninja Pro 2025</title>
-    <link rel="stylesheet" href="styles.css?v=7">
+    <link rel="stylesheet" href="styles.css?v=9">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <!-- Favicon -->
@@ -448,17 +448,52 @@
                 </div>
 
                 <!-- Rotate Tool -->
-                <div id="rotate" class="tool-panel">
+                <div id="rotate" class="tool-panel hidden">
                     <div class="tool-header">
                         <h3><i class="fas fa-sync-alt"></i> Rotate Pages</h3>
+                        <p class="text-muted">Rotate individual or all pages in your PDF.</p>
                     </div>
-                    <select id="rotate-angle" class="form-control" style="margin-bottom: 20px; max-width: 300px;">
-                        <option value="90">90 Degrees Clockwise</option>
-                        <option value="180">180 Degrees</option>
-                        <option value="270">270 Degrees Clockwise</option>
-                    </select>
-                    <button id="rotate-btn" class="btn btn-secondary"><i class="fas fa-redo"></i> Rotate
-                        Selected</button>
+
+                    <!-- Drop Zone -->
+                    <div class="upload-zone" id="rotate-drop-zone">
+                        <div class="upload-icon-wrapper">
+                            <svg class="upload-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            <div class="upload-ripple"></div>
+                        </div>
+                        <h2 class="upload-title">Drop PDF here</h2>
+                        <input type="file" id="rotate-upload" accept="application/pdf" style="display: none;">
+                    </div>
+
+                    <!-- File Info -->
+                    <div id="rotate-file-info" class="file-status-card hidden">
+                        <div class="file-icon"><i class="fas fa-file-pdf"></i></div>
+                        <div class="file-details">
+                            <div class="filename" id="rotate-filename">filename.pdf</div>
+                            <div class="meta" id="rotate-filesize">0 MB</div>
+                        </div>
+                        <button class="btn-close" id="rotate-reset-btn"><i class="fas fa-times"></i></button>
+                    </div>
+
+                    <!-- Toolbar -->
+                    <div id="rotate-toolbar" class="toolbar-container hidden"
+                        style="margin-top:15px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; padding:10px; background:rgba(255,255,255,0.05); border-radius:8px;">
+                        <button id="rotate-all-left" class="btn btn-sm btn-outline-light"><i class="fas fa-undo"></i>
+                            Rotate All Left</button>
+                        <button id="rotate-all-right" class="btn btn-sm btn-outline-light"><i class="fas fa-redo"></i>
+                            Rotate All Right</button>
+                        <button id="rotate-reset-all" class="btn btn-sm btn-dark"><i class="fas fa-sync"></i> Reset
+                            All</button>
+                        <div style="flex-grow:1;"></div>
+                        <button id="rotate-save-btn" class="btn btn-primary"><i class="fas fa-download"></i> Save
+                            Rotated PDF</button>
+                    </div>
+
+                    <!-- Page Grid -->
+                    <div id="rotate-grid" class="page-grid hidden" style="margin-top:20px;"></div>
                 </div>
 
                 <!-- Reorder Tool -->

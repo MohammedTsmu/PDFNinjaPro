@@ -1271,3 +1271,97 @@ body {
     transform: translate(-50%, -50%) scale(1.15) !important;
 }
 
+
+/* --- Rotate Tool Styles --- */
+
+/* Rotate Page Controls */
+.rotate-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.rotate-controls button {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    border-radius: 6px;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.rotate-controls button:hover {
+    background: var(--accent-color);
+    transform: scale(1.1);
+}
+
+.rotation-display {
+    font-size: 12px;
+    font-weight: bold;
+    color: var(--accent-color);
+    min-width: 35px;
+    text-align: center;
+}
+
+/* Canvas Wrapper Animation */
+.page-card .canvas-wrapper {
+    transition: transform 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: visible;
+}
+
+
+/* Page Grid Layout (Multi-Column) */
+.page-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 20px;
+    padding: 10px;
+}
+
+.page-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: all 0.2s ease;
+}
+
+.page-card:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--accent-color);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.page-card .page-num {
+    margin-top: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+/* Responsive Grid */
+@media (max-width: 768px) {
+    .page-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .page-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+}
+
