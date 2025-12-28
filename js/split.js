@@ -116,55 +116,97 @@ document.getElementById('split-by-bookmarks-btn')?.addEventListener('click', asy
     try {
         const chapters = [];
 
-        // Helper to resolve page index from outline item
+        // Recursive flattener to get ALL chapters, not just top level
         const resolveDestination = async (dest) => {
             if (typeof dest === 'string') {
-                // Named destination
                 return window.pdfDocLoaded.getDestination(dest).then(resolved => {
                     if (resolved) return window.pdfDocLoaded.getPageIndex(resolved[0]);
                     return -1;
                 });
             } else if (Array.isArray(dest)) {
-                // Explicit destination [ref, ...]
                 return window.pdfDocLoaded.getPageIndex(dest[0]);
             }
             return -1;
         };
 
-        // Iterate top-level outline items
-        for (let i = 0; i < window.pdfOutline.length; i++) {
-            const item = window.pdfOutline[i];
-            let pageIndex = -1;
+        const flatten = async (items, level = 0) => {
+            for (const item of items) {
+                let pageIndex = -1;
+                if (item.dest) pageIndex = await resolveDestination(item.dest);
+                else if (item.url) continue;
 
-            if (item.dest) {
-                pageIndex = await resolveDestination(item.dest);
-            } else if (item.url) {
-                continue; // External link
+                if (pageIndex !== -1) {
+                    chapters.push({
+                        title: item.title,
+                        page: pageIndex + 1,
+                        level: level // Track depth for UI
+                    });
+                }
+
+                // Recurse if children exist, BUT limit depth to avoid "Topics" (small sections)
+                // We only want Level 0 (Parts) and Level 1 (Chapters).
+                // Stopping recursion here prevents digging into Level 2+
+                if (level < 1 && item.items && item.items.length > 0) {
+                    await flatten(item.items, level + 1);
+                }
             }
+        };
 
-            if (pageIndex !== -1) {
-                chapters.push({ title: item.title, page: pageIndex + 1 }); // 1-based page
-            }
-        }
+        await flatten(window.pdfOutline);
 
-        // Calculate ranges (start of current to start of next - 1)
+        // --- SMART FILTERING & RANGING ---
+        // 1. Calculate Ranges
+        let processedChapters = [];
+
         for (let i = 0; i < chapters.length; i++) {
-            chapters[i].start = chapters[i].page;
+            const chap = chapters[i];
+
+            // Calculate hypothetical end based on next chapter's start
+            let endPage = window.totalPageCount;
             if (i < chapters.length - 1) {
-                chapters[i].end = chapters[i + 1].page - 1;
-            } else {
-                chapters[i].end = window.totalPageCount || 9999; // Last chapter goes to end
+                endPage = chapters[i + 1].page - 1;
+            }
+            if (endPage < chap.page) endPage = chap.page; // Fix overlap for same-page chapters
+
+            chap.start = chap.page;
+            chap.end = endPage;
+
+            // 2. Filter Logic: "Real Chapters Only"
+            // If this chapter starts on the same page as the *next* one, it's likely a Container Section.
+            // Example: "Unit 1" (Pg 5) -> "Chapter 1" (Pg 5).
+            // We want to skip "Unit 1" and show "Chapter 1".
+
+            let isContainer = false;
+            // Check if next item exists and has same start page
+            if (i < chapters.length - 1 && chapters[i + 1].page === chap.page) {
+                isContainer = true;
+            }
+
+            // Only add if it's NOT a container (or if it's the last specific item on that page)
+            if (!isContainer) {
+                processedChapters.push(chap);
             }
         }
+
+        // Re-calculate ends for the *filtered* list to fill gaps if any (Optional, but safer to keep original logic)
+        // Actually, the simple logic above works: The "Container" had a range of 0 length. 
+        // The "Child" will naturally pick up the correct end from the *next-next* item.
+
+        // Wait, if I skip the container, the child (next item) needs to know its end.
+        // The loop above calculated 'end' based on 'chapters[i+1]'.
+        // If Chap 1 is at i+1, it has the correct page.
+        // So Chap 1's end will be calculated based on Chap 2.
+        // Section 1's end was calculated based on Chap 1 (resulting in 0 length).
+        // So skipping Section 1 is safe.
 
         // Render List
         listContainer.innerHTML = '';
-        if (chapters.length === 0) {
+        if (processedChapters.length === 0) {
             listContainer.innerHTML = '<p class="text-muted">No valid chapters found.</p>';
             return;
         }
 
-        chapters.forEach(chap => {
+        processedChapters.forEach(chap => {
             const btn = document.createElement('button');
             btn.className = 'btn btn-sm btn-outline-light';
             btn.style.display = 'block';
