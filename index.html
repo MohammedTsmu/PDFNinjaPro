@@ -264,14 +264,63 @@
                 </div>
 
                 <!-- Comment Tool -->
-                <div id="comment" class="tool-panel">
+                <div id="comment" class="tool-panel hidden">
                     <div class="tool-header">
                         <h3><i class="fas fa-comment-alt"></i> Add Comments</h3>
+                        <p class="text-muted">Click anywhere on the pages to add text.</p>
                     </div>
-                    <textarea id="comment-text" class="form-control" placeholder="Enter your comment here..."
-                        style="min-height: 100px; margin-bottom: 20px;"></textarea>
-                    <button id="comment-btn" class="btn btn-warning"><i class="fas fa-plus-circle"></i> Add
-                        Comment</button>
+
+                    <div class="upload-zone" id="comment-drop-zone">
+                        <div class="upload-icon-wrapper">
+                            <svg class="upload-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                            </svg>
+                            <div class="upload-ripple"></div>
+                        </div>
+                        <h2 class="upload-title">Drop PDF to Comment</h2>
+                        <input type="file" id="comment-upload" accept="application/pdf" style="display: none;">
+                    </div>
+
+                    <div id="comment-file-info" class="file-status-card hidden">
+                        <div class="file-icon"><i class="fas fa-file-pdf"></i></div>
+                        <div class="file-details">
+                            <div class="filename" id="comment-filename">filename.pdf</div>
+                            <div class="meta" id="comment-filesize">0 MB</div>
+                        </div>
+                        <button class="action-btn-remove" id="comment-reset-btn" title="Remove File"><i
+                                class="fas fa-trash-alt"></i></button>
+                    </div>
+
+                    <div id="comment-toolbar" class="settings-panel hidden"
+                        style="flex-direction:row; flex-wrap:wrap; align-items:center;  padding:10px; gap:15px; position:sticky; top:10px; z-index:100; backdrop-filter:blur(10px);">
+                        <input type="text" id="comment-input-text" class="form-control" placeholder="Type text here..."
+                            style="flex:1; min-width:200px;">
+
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <input type="color" id="comment-color" value="#ff0000"
+                                style="width:40px; height:40px; border:none; border-radius:8px; cursor:pointer;">
+
+                            <select id="comment-size" class="form-control" style="width:80px;">
+                                <option value="12">12px</option>
+                                <option value="16">16px</option>
+                                <option value="20" selected>20px</option>
+                                <option value="24">24px</option>
+                                <option value="32">32px</option>
+                                <option value="48">48px</option>
+                            </select>
+                        </div>
+
+                        <button id="download-commented-btn" class="btn btn-warning" style="white-space:nowrap;">
+                            <i class="fas fa-file-signature"></i> Save PDF
+                        </button>
+                    </div>
+
+                    <div id="comment-workspace" class="hidden"
+                        style="margin-top:20px; text-align:center; position:relative;">
+                        <!-- Pages will be rendered here -->
+                    </div>
                 </div>
 
                 <!-- Extract Tool -->
