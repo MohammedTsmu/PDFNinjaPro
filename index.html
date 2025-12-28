@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PDF Ninja Pro 2025</title>
-    <link rel="stylesheet" href="styles.css?v=12">
+    <link rel="stylesheet" href="styles.css?v=15">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <!-- Favicon - PDF Ninja Shuriken -->
@@ -90,6 +90,11 @@
                     </li>
                 </ul>
             </nav>
+
+            <!-- Collapse Toggle (Desktop) -->
+            <button id="sidebar-collapse-btn" class="sidebar-collapse-btn" title="Collapse Menu">
+                <i class="fas fa-chevron-left"></i>
+            </button>
         </aside>
 
         <!-- Main Content -->
@@ -862,6 +867,41 @@
                         menuBtn.querySelector('i').className = 'fas fa-bars';
                     }
                 });
+            });
+        }
+
+        // Desktop Sidebar Collapse Toggle
+        const collapseBtn = document.getElementById('sidebar-collapse-btn');
+        const appContainer = document.querySelector('.app-container');
+
+        // Restore saved state from localStorage
+        if (localStorage.getItem('sidebarCollapsed') === 'true') {
+            sidebar.classList.add('collapsed');
+            appContainer.classList.add('sidebar-collapsed');
+            if (collapseBtn) {
+                collapseBtn.querySelector('i').className = 'fas fa-chevron-right';
+                collapseBtn.title = 'Expand Menu';
+            }
+        }
+
+        if (collapseBtn && sidebar) {
+            collapseBtn.addEventListener('click', () => {
+                sidebar.classList.toggle('collapsed');
+                appContainer.classList.toggle('sidebar-collapsed');
+
+                // Save to localStorage
+                const isCollapsed = sidebar.classList.contains('collapsed');
+                localStorage.setItem('sidebarCollapsed', isCollapsed);
+
+                // Toggle icon direction
+                const icon = collapseBtn.querySelector('i');
+                if (isCollapsed) {
+                    icon.className = 'fas fa-chevron-right';
+                    collapseBtn.title = 'Expand Menu';
+                } else {
+                    icon.className = 'fas fa-chevron-left';
+                    collapseBtn.title = 'Collapse Menu';
+                }
             });
         }
     </script>
