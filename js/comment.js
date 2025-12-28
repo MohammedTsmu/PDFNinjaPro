@@ -471,94 +471,118 @@ async function saveCommentedPDF() {
     if (!commentFile) return;
     const btn = document.getElementById('download-commented-btn');
 
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
     btn.disabled = true;
 
     try {
         const arrayBuffer = await commentFile.arrayBuffer();
         const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
-
-        // Fontkit Removed
-        // pdfDoc.registerFontkit(window.fontkit);
-
         const pages = pdfDoc.getPages();
 
-        // Load Standard Fonts
-        const helveticaFont = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
-        const timesFont = await pdfDoc.embedFont(PDFLib.StandardFonts.TimesRoman);
-        const courierFont = await pdfDoc.embedFont(PDFLib.StandardFonts.Courier);
+        // 1. Create a Hidden Helper Container for Snapshotting
+        // We will render each comment here, "cleanly" (without external scaling/zoom interference),
+        // take a snapshot, and then embed it.
+        const helper = document.createElement('div');
+        helper.style.position = 'absolute';
+        helper.style.left = '-9999px';
+        helper.style.top = '-9999px';
+        helper.style.backgroundColor = 'transparent';
+        // Ensure browser renders it with high quality
+        helper.style.transform = 'translateZ(0)';
+        document.body.appendChild(helper);
 
-        const fonts = {
-            'Helvetica': helveticaFont,
-            'TimesRoman': timesFont,
-            'Courier': courierFont
-        };
-
-        // Arabic Font Loading Removed
-
-        comments.forEach(c => {
-            const page = pages[c.pageIndex - 1]; // 0-based
+        for (const c of comments) {
+            const page = pages[c.pageIndex - 1];
             const { width, height } = page.getSize();
 
+            // Logic:
+            // 1. Render text into helper.
+            // 2. Capture with html2canvas (transparent bg).
+            // 3. Embed PNG.
+            // 4. Draw Image.
+
+            // Reset helper
+            helper.innerHTML = '';
+
+            // Create element
+            const el = document.createElement('div');
+            el.innerText = c.text;
+            el.style.fontFamily = c.fontName;
+            el.style.fontSize = c.size + 'px';
+            el.style.color = c.color;
+            el.style.opacity = c.opacity;
+            el.style.display = 'inline-block';
+            el.style.whiteSpace = 'pre-wrap'; // Preserve lines
+            el.style.lineHeight = '1.2';      // Normal line height
+
+            // Padding/Margins might be needed if html2canvas clips?
+            // "padding: 5px" helps avoid clipping edges of fancy fonts
+            el.style.padding = '5px';
+
+            helper.appendChild(el);
+
+            // Wait for render
+            await new Promise(r => setTimeout(r, 10));
+
+            // Capture
+            const canvas = await html2canvas(el, {
+                backgroundColor: null, // Transparent
+                scale: 2, // 2x scale for higher quality (Retina-like) 
+                logging: false,
+                useCORS: true
+            });
+
+            // Convert to PNG Blob
+            const pngBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            const pngBuffer = await pngBlob.arrayBuffer();
+            const pngImage = await pdfDoc.embedPng(pngBuffer);
+
+            // Calculate Dimensions
+            // The canvas is scaled by 2 (or whatever 'scale' opt is).
+            // We need to draw it at the original "visual" size on PDF.
+            // Provide a slight offset for the padding we added.
+
+            const imgWidth = pngImage.width;
+            const imgHeight = pngImage.height;
+
+            // Targeted PDF Width/Height (undoing the 2x capture scale)
+            const drawWidth = imgWidth / 2;
+            const drawHeight = imgHeight / 2;
+
+            // Coordinate Calculation
             const scaleX = width / (c.canvasWidth || width);
             const scaleY = height / (c.canvasHeight || height);
-
-            // Select Font
-            let font = fonts[c.fontName] || helveticaFont;
-
-            // Arabic Detection Removed
-
-            const textWidth = font.widthOfTextAtSize(c.text, c.size);
-            const textHeight = font.heightAtSize(c.size);
 
             const scaledX = c.x * scaleX;
             const scaledY = c.y * scaleY;
 
-            // Scaled Center Point (Target)
+            // Center Point
             const cx = scaledX;
-            const cy = height - scaledY; // Cartesian Y
+            const cy = height - scaledY;
 
-            // Rotation Correction
-            // The UI rotates around the center (cx, cy).
-            // pdf-lib rotates around the anchor (x, y).
-            // We need to calculate where to place the anchor (x, y) such that 
-            // the center of the text ends up at (cx, cy) after rotation.
-
-            // Vector from Anchor to Center (Unrotated)
-            // V = (textWidth / 2, textHeight / 4)  <-- using our heuristic offset
-            const ox = textWidth / 2;
-            const oy = textHeight / 4;
-
-            // Rotation Angle (Radians)
-            // pdf-lib rotates CCW. CSS rotation (c.rotation) is typically CW in UI logic usually,
-            // but let's match the rotation direction passed to drawText.
-            // We pass `degrees(-c.rotation)`. 
-            // If c.rotation is 45 (CW), we pass -45 (CCW) to PDF.
-            // The correction vector must be rotated by THIS SAME ANGLE.
+            // Rotation Logic
+            const ox = drawWidth / 2;
+            const oy = drawHeight / 2;
             const rad = (-c.rotation * Math.PI) / 180;
 
-            // Rotate Vector V by rad
-            // x' = x*cos - y*sin
-            // y' = x*sin + y*cos
             const rotatedOx = ox * Math.cos(rad) - oy * Math.sin(rad);
             const rotatedOy = ox * Math.sin(rad) + oy * Math.cos(rad);
 
-            // New Anchor Position = TargetCenter - RotatedVector
             const pdfX = cx - rotatedOx;
             const pdfY = cy - rotatedOy;
 
-            const rgbColor = hexToRgb(c.color);
-
-            page.drawText(c.text, {
+            page.drawImage(pngImage, {
                 x: pdfX,
                 y: pdfY,
-                size: c.size,
-                font: font,
-                color: PDFLib.rgb(rgbColor.r / 255, rgbColor.g / 255, rgbColor.b / 255),
-                opacity: c.opacity,
-                rotate: PDFLib.degrees(-c.rotation)
+                width: drawWidth,
+                height: drawHeight,
+                rotate: PDFLib.degrees(-c.rotation),
+                opacity: parseFloat(c.opacity)
             });
-        });
+        }
+
+        // Cleanup
+        document.body.removeChild(helper);
 
         const pdfBytes = await pdfDoc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
