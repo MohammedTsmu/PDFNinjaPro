@@ -87,7 +87,7 @@ async function handleCommentFile(file) {
     document.getElementById('comment-drop-zone').classList.add('hidden');
     document.getElementById('comment-file-info').classList.remove('hidden');
     document.getElementById('comment-toolbar').classList.remove('hidden');
-    document.getElementById('comment-workspace').classList.remove('hidden');
+    document.getElementById('comment-main-container').classList.remove('hidden'); // Show Layout
 
     document.getElementById('comment-filename').textContent = file.name;
     document.getElementById('comment-filesize').textContent = (file.size / (1024 * 1024)).toFixed(2) + " MB";
@@ -108,17 +108,25 @@ function resetCommentUI() {
     commentPdfDoc = null;
     comments = [];
     document.getElementById('comment-workspace').innerHTML = '';
+    document.getElementById('comment-sidebar').innerHTML = '<div style="font-size:12px; font-weight:bold; margin-bottom:5px; opacity:0.7;">Go to Page:</div>';
 
     document.getElementById('comment-drop-zone').classList.remove('hidden');
     document.getElementById('comment-file-info').classList.add('hidden');
     document.getElementById('comment-toolbar').classList.add('hidden');
-    document.getElementById('comment-workspace').classList.add('hidden');
+    document.getElementById('comment-main-container').classList.add('hidden'); // Hide Layout
     document.getElementById('comment-upload').value = '';
 }
 
 async function renderCommentPages() {
     const workspace = document.getElementById('comment-workspace');
+    const sidebar = document.getElementById('comment-sidebar');
     workspace.innerHTML = '';
+    // Reset sidebar but keep header
+    sidebar.innerHTML = '<div style="font-size:12px; font-weight:bold; margin-bottom:5px; opacity:0.7;">Go to Page:</div>';
+
+    // Flag to prevent observer fighting during manual nav click
+    let isManualScrolling = false;
+    let scrollTimeout = null;
 
     for (let i = 1; i <= commentPdfDoc.numPages; i++) {
         const page = await commentPdfDoc.getPage(i);
@@ -126,6 +134,7 @@ async function renderCommentPages() {
 
         const container = document.createElement('div');
         container.className = 'comment-page-container';
+        container.id = 'comment-page-' + i; // ID for scrolling
 
         const wrapper = document.createElement('div');
         wrapper.className = 'comment-canvas-wrapper';
@@ -149,7 +158,122 @@ async function renderCommentPages() {
             if (draggingCommentId || e.target.closest('.comment-overlay')) return;
             addComment(i, e.offsetX, e.offsetY, wrapper, viewport.width, viewport.height);
         });
-    }
+
+        // Add Sidebar Button
+        const navBtn = document.createElement('button');
+        navBtn.textContent = `Page ${i}`;
+        navBtn.className = 'btn btn-sm btn-secondary'; // Bootstrap class for style
+        navBtn.style.textAlign = 'left';
+        navBtn.style.fontSize = '12px';
+        navBtn.id = 'nav-btn-' + i;
+
+        navBtn.onclick = () => {
+            isManualScrolling = true;
+            if (scrollTimeout) clearTimeout(scrollTimeout);
+
+            // Immediate UI update
+            document.querySelectorAll('#comment-sidebar button').forEach(b => {
+                b.classList.remove('btn-primary');
+                b.classList.add('btn-secondary');
+            });
+            navBtn.classList.remove('btn-secondary');
+            navBtn.classList.add('btn-primary');
+
+            container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            // Release lock after animation (approx 1s)
+            scrollTimeout = setTimeout(() => { isManualScrolling = false; }, 1000);
+        };
+        sidebar.appendChild(navBtn);
+    } // End Loop
+
+    // Intersection Observer for scroll syncing
+    const observer = new IntersectionObserver((entries) => {
+        if (isManualScrolling) return; // Skip if we are auto-scrolling
+
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const index = entry.target.dataset.pIndex;
+
+                // Highlight button
+                document.querySelectorAll('#comment-sidebar button').forEach(b => {
+                    b.classList.remove('btn-primary');
+                    b.classList.add('btn-secondary');
+                });
+
+                const activeBtn = document.getElementById('nav-btn-' + index);
+                if (activeBtn) {
+                    activeBtn.classList.remove('btn-secondary');
+                    activeBtn.classList.add('btn-primary');
+
+                    // Safe Auto-scroll: Calculate position within sidebar
+                    // This avoids bubbling scroll events to the main window
+                    const sidebarRect = sidebar.getBoundingClientRect();
+                    const btnRect = activeBtn.getBoundingClientRect();
+
+                    // Check if button is out of view
+                    if (btnRect.top < sidebarRect.top || btnRect.bottom > sidebarRect.bottom) {
+                        const scrollTop = activeBtn.offsetTop - sidebar.offsetTop - (sidebar.offsetHeight / 2) + (activeBtn.offsetHeight / 2);
+                        sidebar.scrollTo({ top: scrollTop, behavior: 'smooth' });
+                    }
+                }
+            }
+        });
+    }, { threshold: 0.5 }); // 50% visibility required to switch
+
+    // Observe all page containers
+    document.querySelectorAll('.comment-page-container').forEach((el, idx) => {
+        el.dataset.pIndex = idx + 1; // Store page index
+        observer.observe(el);
+    });
+
+    // JS-Based Sticky Toolbar (Fallback for CSS issues)
+    const toolbar = document.getElementById('comment-toolbar');
+    // Sidebar is already defined above
+
+    // Create placeholder for toolbar to prevent layout jump
+    const placeholder = document.createElement('div');
+    placeholder.id = 'toolbar-placeholder';
+    placeholder.style.display = 'none';
+    toolbar.parentNode.insertBefore(placeholder, toolbar);
+
+    const handleScroll = () => {
+        if (toolbar.classList.contains('hidden')) return;
+
+        const rect = placeholder.getBoundingClientRect();
+        const shouldStick = rect.top <= 0;
+
+        if (shouldStick) {
+            // Enable Sticky
+            if (!toolbar.classList.contains('is-stuck')) {
+                const height = toolbar.offsetHeight;
+                placeholder.style.height = height + 'px';
+                placeholder.style.display = 'block';
+
+                toolbar.classList.add('is-stuck');
+                toolbar.style.position = 'fixed';
+                toolbar.style.top = '0';
+                toolbar.style.left = '0';
+                toolbar.style.width = '100%';
+                toolbar.style.boxShadow = '0 4px 15px rgba(0,0,0,0.3)';
+
+                // Adjust Sidebar to sit below fixed toolbar
+                sidebar.style.top = (height + 10) + 'px';
+            }
+        } else {
+            // Disable Sticky
+            if (toolbar.classList.contains('is-stuck')) {
+                toolbar.classList.remove('is-stuck');
+                toolbar.style.position = 'static'; // or relative/sticky
+                toolbar.style.boxShadow = '';
+                placeholder.style.display = 'none';
+
+                sidebar.style.top = '10px'; // Reset sidebar top
+            }
+        }
+    };
+
+    window.addEventListener('scroll', handleScroll);
 }
 
 function addComment(pageIndex, x, y, wrapper, canvasWidth, canvasHeight) {
@@ -214,8 +338,11 @@ function addComment(pageIndex, x, y, wrapper, canvasWidth, canvasHeight) {
         draggingCommentId = id;
         dragStartX = e.clientX;
         dragStartY = e.clientY;
-        dragStartLeft = commentEl.offsetLeft;
-        dragStartTop = commentEl.offsetTop;
+
+        // FIX: Use current style left/top (Center Coords) instead of offset (Corner Coords)
+        // to prevent jumping because of translate(-50%, -50%)
+        dragStartLeft = parseFloat(commentEl.style.left);
+        dragStartTop = parseFloat(commentEl.style.top);
 
         commentEl.classList.add('selected');
     });
