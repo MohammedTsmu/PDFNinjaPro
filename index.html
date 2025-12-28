@@ -300,26 +300,42 @@
 
                         <div style="display:flex; gap:10px; align-items:center;">
                             <!-- Color -->
-                            <input type="color" id="comment-color" value="#ff0000" title="Text Color"
-                                style="width:40px; height:40px; border:none; border-radius:8px; cursor:pointer;">
+                            <div style="display:flex; flex-direction:column; align-items:center; width:50px;">
+                                <label id="lbl-color" style="font-size:10px; margin:0; opacity:0.8; cursor:pointer;"
+                                    title="Click to Reset">Color ↺</label>
+                                <input type="color" id="comment-color" value="#ff0000"
+                                    style="width:100%; height:25px; border:none; padding:0; background:none; cursor:pointer;">
+                            </div>
 
                             <!-- Font Size -->
-                            <select id="comment-size" class="form-control" title="Font Size" style="width:70px;">
-                                <option value="12">12px</option>
-                                <option value="16">16px</option>
-                                <option value="20" selected>20px</option>
-                                <option value="24">24px</option>
-                                <option value="32">32px</option>
-                                <option value="48">48px</option>
-                                <option value="64">64px</option>
-                            </select>
+                            <div
+                                style="display:flex; flex-direction:column; align-items:center; width:70px; border-left:1px solid rgba(255,255,255,0.2); padding-left:10px;">
+                                <label id="lbl-size" style="font-size:10px; margin:0; opacity:0.8; cursor:pointer;"
+                                    title="Click to Reset">Size ↺</label>
+                                <select id="comment-size" class="form-control"
+                                    style="width:100%; padding:0 5px; height:25px; font-size:12px;">
+                                    <option value="12">12px</option>
+                                    <option value="16">16px</option>
+                                    <option value="20" selected>20px</option>
+                                    <option value="24">24px</option>
+                                    <option value="32">32px</option>
+                                    <option value="48">48px</option>
+                                    <option value="64">64px</option>
+                                </select>
+                            </div>
 
                             <!-- Font Family -->
-                            <select id="comment-font" class="form-control" title="Font Family" style="width:110px;">
-                                <option value="Helvetica" selected>Helvetica</option>
-                                <option value="TimesRoman">Times</option>
-                                <option value="Courier">Courier</option>
-                            </select>
+                            <div
+                                style="display:flex; flex-direction:column; align-items:center; width:100px; border-left:1px solid rgba(255,255,255,0.2); padding-left:10px;">
+                                <label id="lbl-font" style="font-size:10px; margin:0; opacity:0.8; cursor:pointer;"
+                                    title="Click to Reset">Font ↺</label>
+                                <select id="comment-font" class="form-control"
+                                    style="width:100%; padding:0 5px; height:25px; font-size:12px;">
+                                    <option value="Helvetica" selected>Helvetica</option>
+                                    <option value="TimesRoman">Times</option>
+                                    <option value="Courier">Courier</option>
+                                </select>
+                            </div>
 
                             <!-- Opacity -->
                             <div

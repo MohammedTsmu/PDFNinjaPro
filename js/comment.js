@@ -45,30 +45,35 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('mousemove', handleGlobalDragMove);
     window.addEventListener('mouseup', handleGlobalDragEnd);
 
-    // UI Helpers
-    const rotInput = document.getElementById('comment-rotation');
-    const rotVal = document.getElementById('rotation-value');
-    if (rotInput && rotVal) {
-        rotInput.addEventListener('input', () => {
-            rotVal.textContent = rotInput.value + '°';
-        });
-        rotVal.addEventListener('click', () => {
-            rotInput.value = 0;
-            rotVal.textContent = '0°';
-        });
-    }
+    // UI Helpers: Reset Logic
+    const bindReset = (triggerId, inputId, defaultVal, displayId = null, displaySuffix = '') => {
+        const trigger = document.getElementById(triggerId);
+        const input = document.getElementById(inputId);
+        const display = displayId ? document.getElementById(displayId) : null;
 
-    const opInput = document.getElementById('comment-opacity');
-    const opVal = document.getElementById('opacity-value');
-    if (opInput && opVal) {
-        opInput.addEventListener('input', () => {
-            opVal.textContent = opInput.value;
-        });
-        opVal.addEventListener('click', () => {
-            opInput.value = 1;
-            opVal.textContent = '1.0';
-        });
-    }
+        if (trigger && input) {
+            trigger.addEventListener('click', () => {
+                input.value = defaultVal;
+                // Trigger change event manually if needed, or just update UI
+                if (display) display.textContent = defaultVal + displaySuffix;
+            });
+            // Update display on input change (for ranges)
+            if (display) {
+                input.addEventListener('input', () => {
+                    display.textContent = input.value + displaySuffix;
+                });
+            }
+        }
+    };
+
+    // Initialize Resets
+    bindReset('rotation-value', 'comment-rotation', '0', 'rotation-value', '°');
+    bindReset('opacity-value', 'comment-opacity', '1', 'opacity-value', '');
+
+    bindReset('lbl-color', 'comment-color', '#ff0000');
+    bindReset('lbl-size', 'comment-size', '20');
+    bindReset('lbl-font', 'comment-font', 'Helvetica');
+
 });
 
 async function handleCommentFile(file) {
