@@ -275,12 +275,53 @@
                 </div>
 
                 <!-- Extract Tool -->
-                <div id="extract" class="tool-panel">
+                <div id="extract" class="tool-panel hidden">
                     <div class="tool-header">
                         <h3><i class="fas fa-file-alt"></i> Extract Text</h3>
+                        <p class="text-muted">Extract raw text content from your PDF documents.</p>
                     </div>
-                    <button id="extract-btn" class="btn btn-dark"><i class="fas fa-file-export"></i> Extract Text from
-                        Pages</button>
+
+                    <div class="upload-zone" id="extract-drop-zone">
+                        <div class="upload-icon-wrapper">
+                            <svg class="upload-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <div class="upload-ripple"></div>
+                        </div>
+                        <h2 class="upload-title">Drop PDF here</h2>
+                        <input type="file" id="extract-upload" accept="application/pdf" style="display: none;">
+                    </div>
+
+                    <div id="extract-file-info" class="file-status-card hidden">
+                        <div class="file-icon"><i class="fas fa-file-pdf"></i></div>
+                        <div class="file-details">
+                            <div class="filename" id="extract-filename">filename.pdf</div>
+                            <div class="meta" id="extract-filesize">0 MB</div>
+                        </div>
+                        <button class="btn-close" id="extract-reset-btn"><i class="fas fa-times"></i></button>
+                    </div>
+
+                    <div id="extract-actions" class="hidden"
+                        style="margin-top: 20px; display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <span class="text-muted" id="extract-status">Ready to extract</span>
+                        <div style="display:flex; gap:10px;">
+                            <button id="extract-copy-btn" class="btn btn-sm btn-outline-light"><i
+                                    class="fas fa-copy"></i> Copy</button>
+                            <button id="extract-download-btn" class="btn btn-sm btn-outline-light"><i
+                                    class="fas fa-download"></i> Save .txt</button>
+                        </div>
+                    </div>
+
+                    <button id="start-extract-btn" class="btn btn-primary hidden"
+                        style="width:100%; margin-bottom:20px;">
+                        <i class="fas fa-bolt"></i> Start Extraction
+                    </button>
+
+                    <textarea id="extract-result" class="form-control hidden" readonly
+                        placeholder="Extracted text will appear here..."
+                        style="min-height: 400px; font-family: monospace; font-size: 0.9em; line-height: 1.5; white-space: pre-wrap;"></textarea>
                 </div>
 
                 <!-- Rotate Tool -->
