@@ -1456,3 +1456,42 @@ body {
     font-size: 10px;
 }
 
+
+/* --- Background Tool Styles --- */
+
+/* Page Selection Checkbox */
+.page-checkbox {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: transparent;
+    font-size: 12px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.page-card.selected .page-checkbox {
+    background: var(--accent-color);
+    border-color: var(--accent-color);
+    color: white;
+}
+
+.page-card.selected {
+    border: 2px solid var(--accent-color);
+    box-shadow: 0 0 20px rgba(244, 63, 94, 0.3);
+}
+
+/* Background Card Cursor */
+.background-card {
+    cursor: pointer;
+    position: relative;
+}
+

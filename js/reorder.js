@@ -80,16 +80,93 @@ async function renderReorderGrid() {
     grid.innerHTML = '';
     reorderPages = [];
 
-    for (let i = 1; i <= reorderPdfDoc.numPages; i++) {
-        const page = await reorderPdfDoc.getPage(i);
-        const viewport = page.getViewport({ scale: 0.3 }); // Thumbnail size
+    const totalPages = reorderPdfDoc.numPages;
+    const BATCH_SIZE = 10;
+    const BATCH_DELAY = 50;
 
+    // Create all placeholders first
+    for (let i = 1; i <= totalPages; i++) {
         const card = document.createElement('div');
-        card.className = 'page-card reorder-card';
+        card.className = 'page-card reorder-card loading';
         card.dataset.pageIndex = i;
 
         const canvasWrapper = document.createElement('div');
         canvasWrapper.className = 'canvas-wrapper';
+        canvasWrapper.style.width = '150px';
+        canvasWrapper.style.height = '200px';
+        canvasWrapper.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size:24px; color:rgba(255,255,255,0.3);"></i>';
+        card.appendChild(canvasWrapper);
+
+        const pageNum = document.createElement('div');
+        pageNum.className = 'page-num';
+        pageNum.textContent = `Page ${i}`;
+        card.appendChild(pageNum);
+
+        const dragIcon = document.createElement('div');
+        dragIcon.className = 'drag-handle-icon';
+        dragIcon.innerHTML = '<i class="fas fa-grip-vertical"></i>';
+        card.appendChild(dragIcon);
+
+        grid.appendChild(card);
+
+        reorderPages.push({
+            pageIndex: i,
+            element: card,
+            rendered: false
+        });
+    }
+
+    // Initialize Sortable immediately so user can reorder even while loading
+    reorderSortable = new Sortable(grid, {
+        animation: 200,
+        ghostClass: 'sortable-ghost',
+        chosenClass: 'sortable-chosen',
+        dragClass: 'sortable-drag',
+        handle: '.page-card',
+        onEnd: function (evt) {
+            const draggedCard = evt.item;
+            const newPosition = evt.newIndex + 1;
+            const oldPosition = evt.oldIndex + 1;
+
+            if (oldPosition !== newPosition) {
+                draggedCard.dataset.moved = 'true';
+            }
+
+            updatePageNumbers();
+        }
+    });
+
+    // Render in batches
+    // Use IntersectionObserver for true lazy loading
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const card = entry.target;
+                const pageIndex = parseInt(card.dataset.pageIndex, 10);
+                renderReorderPage(pageIndex);
+                observer.unobserve(card);
+            }
+        });
+    }, {
+        root: null,
+        rootMargin: '200px',
+        threshold: 0
+    });
+
+    reorderPages.forEach(p => observer.observe(p.element));
+}
+
+async function renderReorderPage(pageIndex) {
+    const pageData = reorderPages[pageIndex - 1];
+    if (!pageData || pageData.rendered) return;
+
+    try {
+        const page = await reorderPdfDoc.getPage(pageIndex);
+        const viewport = page.getViewport({ scale: 0.2 });
+
+        const card = pageData.element;
+        const canvasWrapper = card.querySelector('.canvas-wrapper');
+        canvasWrapper.innerHTML = '';
         canvasWrapper.style.width = viewport.width + 'px';
         canvasWrapper.style.height = viewport.height + 'px';
 
@@ -101,52 +178,14 @@ async function renderReorderGrid() {
         await page.render({ canvasContext: context, viewport: viewport }).promise;
 
         canvasWrapper.appendChild(canvas);
-        card.appendChild(canvasWrapper);
-
-        // Page Number Badge
-        const pageNum = document.createElement('div');
-        pageNum.className = 'page-num';
-        pageNum.textContent = `Page ${i}`;
-        card.appendChild(pageNum);
-
-        // Drag Handle Indicator
-        const dragIcon = document.createElement('div');
-        dragIcon.className = 'drag-handle-icon';
-        dragIcon.innerHTML = '<i class="fas fa-grip-vertical"></i>';
-        card.appendChild(dragIcon);
-
-        grid.appendChild(card);
-
-        reorderPages.push({
-            pageIndex: i,
-            element: card
-        });
+        card.classList.remove('loading');
+        pageData.rendered = true;
+    } catch (e) {
+        console.error('Error rendering page', pageIndex, e);
     }
-
-    // Initialize Sortable.js
-    reorderSortable = new Sortable(grid, {
-        animation: 200,
-        ghostClass: 'sortable-ghost',
-        chosenClass: 'sortable-chosen',
-        dragClass: 'sortable-drag',
-        handle: '.page-card', // Entire card is draggable
-        onEnd: function (evt) {
-            // Track the dragged item
-            const draggedCard = evt.item;
-            const originalPage = parseInt(draggedCard.dataset.pageIndex, 10);
-            const newPosition = evt.newIndex + 1;
-            const oldPosition = evt.oldIndex + 1;
-
-            // Only mark as moved if it actually changed position
-            if (oldPosition !== newPosition) {
-                // Mark this specific card as intentionally moved
-                draggedCard.dataset.moved = 'true';
-            }
-
-            updatePageNumbers();
-        }
-    });
 }
+
+
 
 function updatePageNumbers() {
     const cards = document.querySelectorAll('#reorder-grid .page-card');

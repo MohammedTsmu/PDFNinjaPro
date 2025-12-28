@@ -82,37 +82,29 @@ async function renderRotateGrid() {
     grid.innerHTML = '';
     rotatePages = [];
 
-    for (let i = 1; i <= rotatePdfDoc.numPages; i++) {
-        const page = await rotatePdfDoc.getPage(i);
-        const viewport = page.getViewport({ scale: 0.3 }); // Thumbnail size
+    const totalPages = rotatePdfDoc.numPages;
+    const BATCH_SIZE = 10;
+    const BATCH_DELAY = 50;
 
+    // Create all placeholders first
+    for (let i = 1; i <= totalPages; i++) {
         const card = document.createElement('div');
-        card.className = 'page-card';
+        card.className = 'page-card loading';
         card.dataset.pageIndex = i;
 
         const canvasWrapper = document.createElement('div');
         canvasWrapper.className = 'canvas-wrapper';
-        canvasWrapper.style.width = viewport.width + 'px';
-        canvasWrapper.style.height = viewport.height + 'px';
+        canvasWrapper.style.width = '150px';
+        canvasWrapper.style.height = '200px';
         canvasWrapper.style.transition = 'transform 0.3s ease';
-
-        const canvas = document.createElement('canvas');
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-
-        const context = canvas.getContext('2d');
-        await page.render({ canvasContext: context, viewport: viewport }).promise;
-
-        canvasWrapper.appendChild(canvas);
+        canvasWrapper.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size:24px; color:rgba(255,255,255,0.3);"></i>';
         card.appendChild(canvasWrapper);
 
-        // Page Number
         const pageNum = document.createElement('div');
         pageNum.className = 'page-num';
         pageNum.textContent = `Page ${i}`;
         card.appendChild(pageNum);
 
-        // Rotation Controls
         const controls = document.createElement('div');
         controls.className = 'rotate-controls';
         controls.innerHTML = `
@@ -129,13 +121,59 @@ async function renderRotateGrid() {
             rotation: 0,
             element: card,
             canvasWrapper: canvasWrapper,
-            display: controls.querySelector('.rotation-display')
+            display: controls.querySelector('.rotation-display'),
+            rendered: false
         };
         rotatePages.push(pageData);
 
-        // Button Logic
         controls.querySelector('.btn-rotate-left').addEventListener('click', () => rotatePage(pageData, -90));
         controls.querySelector('.btn-rotate-right').addEventListener('click', () => rotatePage(pageData, 90));
+    }
+
+    // Use IntersectionObserver for true lazy loading
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const card = entry.target;
+                const pageIndex = parseInt(card.dataset.pageIndex, 10);
+                renderRotatePage(pageIndex);
+                observer.unobserve(card);
+            }
+        });
+    }, {
+        root: null,
+        rootMargin: '200px',
+        threshold: 0
+    });
+
+    rotatePages.forEach(p => observer.observe(p.element));
+}
+
+async function renderRotatePage(pageIndex) {
+    const pageData = rotatePages[pageIndex - 1];
+    if (!pageData || pageData.rendered) return;
+
+    try {
+        const page = await rotatePdfDoc.getPage(pageIndex);
+        const viewport = page.getViewport({ scale: 0.2 });
+
+        const canvasWrapper = pageData.canvasWrapper;
+        canvasWrapper.innerHTML = '';
+        canvasWrapper.style.width = viewport.width + 'px';
+        canvasWrapper.style.height = viewport.height + 'px';
+
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+
+        const context = canvas.getContext('2d');
+        await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+        canvasWrapper.appendChild(canvas);
+        pageData.element.classList.remove('loading');
+        pageData.rendered = true;
+    } catch (e) {
+        console.error('Error rendering page', pageIndex, e);
     }
 }
 

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PDF Ninja Pro 2025</title>
-    <link rel="stylesheet" href="styles.css?v=11">
+    <link rel="stylesheet" href="styles.css?v=12">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <!-- Favicon -->
@@ -541,14 +541,60 @@
                 </div>
 
                 <!-- Background Tool -->
-                <div id="background" class="tool-panel">
+                <div id="background" class="tool-panel hidden">
                     <div class="tool-header">
                         <h3><i class="fas fa-fill-drip"></i> Add Background</h3>
+                        <p class="text-muted">Add a colored background to PDF pages.</p>
                     </div>
-                    <input type="color" id="background-color" class="form-control"
-                        style="height: 50px; width: 100px; padding: 5px; margin-bottom: 20px;">
-                    <button id="background-btn" class="btn btn-info"><i class="fas fa-paint-roller"></i> Apply
-                        Background</button>
+
+                    <!-- Drop Zone -->
+                    <div class="upload-zone" id="background-drop-zone">
+                        <div class="upload-icon-wrapper">
+                            <svg class="upload-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                            </svg>
+                            <div class="upload-ripple"></div>
+                        </div>
+                        <h2 class="upload-title">Drop PDF here</h2>
+                        <input type="file" id="background-upload" accept="application/pdf" style="display: none;">
+                    </div>
+
+                    <!-- File Info -->
+                    <div id="background-file-info" class="file-status-card hidden">
+                        <div class="file-icon"><i class="fas fa-file-pdf"></i></div>
+                        <div class="file-details">
+                            <div class="filename" id="background-filename">filename.pdf</div>
+                            <div class="meta" id="background-filesize">0 MB</div>
+                        </div>
+                        <button class="btn-close" id="background-reset-btn"><i class="fas fa-times"></i></button>
+                    </div>
+
+                    <!-- Toolbar -->
+                    <div id="background-toolbar" class="toolbar-container hidden"
+                        style="margin-top:15px; display:flex; gap:15px; flex-wrap:wrap; align-items:center; padding:15px; background:rgba(255,255,255,0.05); border-radius:8px;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <label style="font-size:13px; color:var(--text-muted);">Color:</label>
+                            <input type="color" id="background-color" value="#f0f0f0"
+                                style="width:50px; height:35px; border:none; border-radius:6px; cursor:pointer;">
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <label style="font-size:13px; color:var(--text-muted);">Opacity:</label>
+                            <input type="range" id="background-opacity" min="0.1" max="1" step="0.1" value="0.5"
+                                style="width:100px;">
+                            <span id="background-opacity-value"
+                                style="font-size:12px; color:var(--accent-color);">50%</span>
+                        </div>
+                        <div style="flex-grow:1;"></div>
+                        <button id="background-select-all" class="btn btn-sm btn-outline-light"><i
+                                class="fas fa-check-double"></i> Select All</button>
+                        <button id="background-save-btn" class="btn btn-primary"><i class="fas fa-download"></i> Save
+                            PDF</button>
+                    </div>
+
+                    <!-- Page Grid -->
+                    <div id="background-grid" class="page-grid hidden" style="margin-top:20px;"></div>
                 </div>
 
             </section>
