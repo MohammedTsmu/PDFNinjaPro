@@ -203,6 +203,8 @@ window.moveMergeFile = (index, direction) => {
 // Modal Logic
 let currentModalId = null;
 let currentModalSelection = new Set();
+let processingSessionId = 0; // Cancellation Token
+
 const modal = document.getElementById('merge-selection-modal');
 const modalGrid = document.getElementById('modal-page-grid');
 const modalCount = document.getElementById('modal-selected-count');
@@ -214,11 +216,19 @@ window.openMergeSelectionModal = async (id) => {
     currentModalId = id;
     currentModalSelection = new Set();
 
+    // New Session
+    processingSessionId++;
+    const mySessionId = processingSessionId;
+
     modal.classList.remove('hidden');
     modalGrid.innerHTML = '<div class="spinner"></div>';
 
     try {
         const arrayBuffer = await item.file.arrayBuffer();
+
+        // Check cancellation
+        if (mySessionId !== processingSessionId) return;
+
         const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
         const totalPages = pdf.numPages;
 
@@ -283,7 +293,7 @@ window.openMergeSelectionModal = async (id) => {
         }
 
         // 3. Render Batches (Prevent Main Thread Freeze)
-        renderThumbnailsSequentially(pdf, totalPages, canvasMap);
+        renderThumbnailsSequentially(pdf, totalPages, canvasMap, mySessionId);
 
     } catch (e) {
         console.error(e);
@@ -291,9 +301,15 @@ window.openMergeSelectionModal = async (id) => {
     }
 };
 
-async function renderThumbnailsSequentially(pdf, total, canvasMap) {
+async function renderThumbnailsSequentially(pdf, total, canvasMap, sessionId) {
     const BATCH_SIZE = 5;
     for (let i = 1; i <= total; i += BATCH_SIZE) {
+        // CANCELLATION CHECK
+        if (sessionId !== processingSessionId) {
+            console.log('Rendering cancelled for session', sessionId);
+            return;
+        }
+
         const batchPromises = [];
         for (let j = 0; j < BATCH_SIZE && (i + j) <= total; j++) {
             batchPromises.push(renderOnePage(pdf, i + j, canvasMap.get(i + j)));
@@ -350,6 +366,7 @@ function updateModalCount() {
 // Modal Buttons
 document.getElementById('close-modal-btn')?.addEventListener('click', () => {
     modal.classList.add('hidden');
+    processingSessionId++; // Invalidate current rendering
 });
 
 // Quick Select Logic
