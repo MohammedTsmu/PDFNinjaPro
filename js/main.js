@@ -218,35 +218,35 @@ document.addEventListener('DOMContentLoaded', function () {
     // 5. Toolbox Actions
     document.getElementById('sel-all').addEventListener('click', () => {
         if (!pdfDocGlobal) return;
-        for (let i = 1; i <= pdfDocGlobal.numPages; i++) selectedPages.add(i);
+        for (let i = 1; i <= pdfDocGlobal.numPages; i++) window.selectedPages.add(i);
         updateSelectionUI();
     });
 
     document.getElementById('sel-none').addEventListener('click', () => {
-        selectedPages.clear();
+        window.selectedPages.clear();
         updateSelectionUI();
     });
 
     document.getElementById('sel-inverse').addEventListener('click', () => {
         if (!pdfDocGlobal) return;
         for (let i = 1; i <= pdfDocGlobal.numPages; i++) {
-            if (selectedPages.has(i)) selectedPages.delete(i);
-            else selectedPages.add(i);
+            if (window.selectedPages.has(i)) window.selectedPages.delete(i);
+            else window.selectedPages.add(i);
         }
         updateSelectionUI();
     });
 
     document.getElementById('sel-odd').addEventListener('click', () => {
         if (!pdfDocGlobal) return;
-        selectedPages.clear();
-        for (let i = 1; i <= pdfDocGlobal.numPages; i += 2) selectedPages.add(i);
+        window.selectedPages.clear();
+        for (let i = 1; i <= pdfDocGlobal.numPages; i += 2) window.selectedPages.add(i);
         updateSelectionUI();
     });
 
     document.getElementById('sel-even').addEventListener('click', () => {
         if (!pdfDocGlobal) return;
-        selectedPages.clear();
-        for (let i = 2; i <= pdfDocGlobal.numPages; i += 2) selectedPages.add(i);
+        window.selectedPages.clear();
+        for (let i = 2; i <= pdfDocGlobal.numPages; i += 2) window.selectedPages.add(i);
         updateSelectionUI();
     });
 
