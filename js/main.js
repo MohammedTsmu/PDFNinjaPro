@@ -1,7 +1,7 @@
 // Direct PDF Loader - Simplified & Reliable
 // Eliminates Web Workers to prevent "Fake Worker" and "Cross-Origin" issues.
 
-let selectedPages = new Set();
+window.selectedPages = new Set();
 let pdfDocGlobal = null;
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -86,6 +86,20 @@ document.addEventListener('DOMContentLoaded', function () {
             });
 
             pdfDocGlobal = await loadingTask.promise;
+
+            // --- RESTORE CHAPTER LOGIC ---
+            // split.js needs these globals to work
+            window.pdfDocLoaded = pdfDocGlobal;
+            const outline = await pdfDocGlobal.getOutline();
+            window.pdfOutline = outline;
+
+            const bookmarkBtn = document.getElementById('split-by-bookmarks-btn');
+            if (outline && outline.length > 0 && bookmarkBtn) {
+                bookmarkBtn.classList.remove('hidden');
+            } else if (bookmarkBtn) {
+                bookmarkBtn.classList.add('hidden');
+            }
+            // -----------------------------
 
             // Success State
             statusInd.className = 'status-indicator success';
@@ -191,11 +205,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 4. Selection Logic
     function toggleSelect(i, el) {
-        if (selectedPages.has(i)) {
-            selectedPages.delete(i);
+        if (window.selectedPages.has(i)) {
+            window.selectedPages.delete(i);
             el.classList.remove('selected');
         } else {
-            selectedPages.add(i);
+            window.selectedPages.add(i);
             el.classList.add('selected');
         }
         updateSelectionUI();
@@ -237,17 +251,18 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     function updateSelectionUI() {
+        window.updateSelectionUI = updateSelectionUI; // Expose for other modules
         // Visual Update
         document.querySelectorAll('.page-container').forEach(container => {
             const num = parseInt(container.dataset.pageNumber);
-            if (selectedPages.has(num)) container.classList.add('selected');
+            if (window.selectedPages.has(num)) container.classList.add('selected');
             else container.classList.remove('selected');
         });
 
         // Input Update
         const rangesInput = document.getElementById('page-ranges');
         if (rangesInput) {
-            const sorted = Array.from(selectedPages).sort((a, b) => a - b);
+            const sorted = Array.from(window.selectedPages).sort((a, b) => a - b);
             let ranges = [];
             for (let i = 0; i < sorted.length; i++) {
                 const start = sorted[i];

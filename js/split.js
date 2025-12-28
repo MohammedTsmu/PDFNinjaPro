@@ -68,13 +68,17 @@ document.getElementById('split-by-bookmarks-btn')?.addEventListener('click', asy
 
             btn.addEventListener('click', () => {
                 // Select these pages
-                if (typeof selectedPages !== 'undefined') {
-                    selectedPages.clear();
+                if (typeof window.selectedPages !== 'undefined') {
+                    window.selectedPages.clear();
                     const end = Math.min(chap.end, window.totalPageCount);
                     for (let p = chap.start; p <= end; p++) {
-                        selectedPages.add(p);
+                        window.selectedPages.add(p);
                     }
-                    if (typeof updateSelectionUI === 'function') updateSelectionUI();
+                    if (typeof window.updateSelectionUI === 'function') window.updateSelectionUI();
+
+                    // Also auto-fill chapter name
+                    const nameInput = document.getElementById('chapter-name');
+                    if (nameInput) nameInput.value = chap.title.replace(/[^a-zA-Z0-9-_]/g, '_');
                 }
             });
             listContainer.appendChild(btn);
