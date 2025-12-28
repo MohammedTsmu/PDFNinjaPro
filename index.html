@@ -295,6 +295,20 @@
 
                     <div id="comment-toolbar" class="settings-panel hidden"
                         style="flex-direction:row; flex-wrap:wrap; align-items:center;  padding:10px; gap:15px; position:sticky; top:0; z-index:1000; backdrop-filter:blur(10px); background:rgba(15, 23, 42, 0.95); border-bottom:1px solid rgba(255,255,255,0.1);">
+
+                        <!-- Page Navigation -->
+                        <div
+                            style="display:flex; align-items:center; gap:5px; border-right:1px solid rgba(255,255,255,0.2); padding-right:10px;">
+                            <button id="comment-prev-page" class="btn btn-sm btn-secondary" style="padding:2px 8px;"><i
+                                    class="fas fa-chevron-left"></i></button>
+                            <span style="font-size:12px;">Page</span>
+                            <input type="number" id="comment-page-input" value="1" min="1"
+                                style="width:50px; text-align:center; height:25px; border-radius:4px; border:1px solid #444; background:#222; color:white;">
+                            <span style="font-size:12px;">/ <span id="comment-total-pages">0</span></span>
+                            <button id="comment-next-page" class="btn btn-sm btn-secondary" style="padding:2px 8px;"><i
+                                    class="fas fa-chevron-right"></i></button>
+                        </div>
+
                         <input type="text" id="comment-input-text" class="form-control" placeholder="Type text here..."
                             style="flex:1; min-width:200px;">
 
@@ -373,16 +387,7 @@
                         </button>
                     </div>
 
-                    <div id="comment-main-container" class="hidden"
-                        style="display:flex; margin-top:20px; gap:20px; align-items:flex-start;">
-                        <!-- Sidebar -->
-                        <div id="comment-sidebar"
-                            style="width:140px; min-width:140px; max-height:85vh; overflow-y:auto; position:sticky; top:90px; background:rgba(255,255,255,0.05); border-radius:8px; padding:10px; display:flex; flex-direction:column; gap:5px;">
-                            <div style="font-size:12px; font-weight:bold; margin-bottom:5px; opacity:0.7;">Go to Page:
-                            </div>
-                            <!-- Page buttons will be injected here -->
-                        </div>
-
+                    <div id="comment-main-container" class="hidden" style="display:block; margin-top:20px;">
                         <!-- Workspace (Pages) -->
                         <div id="comment-workspace" style="flex:1; text-align:center; position:relative;">
                             <!-- Pages will be rendered here -->

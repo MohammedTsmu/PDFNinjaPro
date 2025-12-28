@@ -119,15 +119,33 @@ function resetCommentUI() {
 
 async function renderCommentPages() {
     const workspace = document.getElementById('comment-workspace');
-    const sidebar = document.getElementById('comment-sidebar');
-    workspace.innerHTML = '';
-    // Reset sidebar but keep header
-    sidebar.innerHTML = '<div style="font-size:12px; font-weight:bold; margin-bottom:5px; opacity:0.7;">Go to Page:</div>';
+    // Navigation Controls
+    const prevBtn = document.getElementById('comment-prev-page');
+    const nextBtn = document.getElementById('comment-next-page');
+    const pageInput = document.getElementById('comment-page-input');
+    const totalPagesSpan = document.getElementById('comment-total-pages');
 
-    // Flag to prevent observer fighting during manual nav click
-    let isManualScrolling = false;
-    let scrollTimeout = null;
+    totalPagesSpan.textContent = commentPdfDoc.numPages;
+    pageInput.max = commentPdfDoc.numPages;
 
+    const scrollToPage = (p) => {
+        if (p < 1) p = 1;
+        if (p > commentPdfDoc.numPages) p = commentPdfDoc.numPages;
+        const container = document.getElementById('comment-page-' + p);
+        if (container) {
+            // Offset for sticky toolbar (approx 60px)
+            const toolbarHeight = document.getElementById('comment-toolbar').offsetHeight || 60;
+            const top = container.getBoundingClientRect().top + window.scrollY - toolbarHeight - 10;
+            window.scrollTo({ top: top, behavior: 'smooth' });
+            pageInput.value = p;
+        }
+    };
+
+    prevBtn.onclick = () => scrollToPage(parseInt(pageInput.value) - 1);
+    nextBtn.onclick = () => scrollToPage(parseInt(pageInput.value) + 1);
+    pageInput.onchange = () => scrollToPage(parseInt(pageInput.value));
+
+    // Render Pages Loop
     for (let i = 1; i <= commentPdfDoc.numPages; i++) {
         const page = await commentPdfDoc.getPage(i);
         const viewport = page.getViewport({ scale: 1.0 });
@@ -158,68 +176,20 @@ async function renderCommentPages() {
             if (draggingCommentId || e.target.closest('.comment-overlay')) return;
             addComment(i, e.offsetX, e.offsetY, wrapper, viewport.width, viewport.height);
         });
+    }
 
-        // Add Sidebar Button
-        const navBtn = document.createElement('button');
-        navBtn.textContent = `Page ${i}`;
-        navBtn.className = 'btn btn-sm btn-secondary'; // Bootstrap class for style
-        navBtn.style.textAlign = 'left';
-        navBtn.style.fontSize = '12px';
-        navBtn.id = 'nav-btn-' + i;
-
-        navBtn.onclick = () => {
-            isManualScrolling = true;
-            if (scrollTimeout) clearTimeout(scrollTimeout);
-
-            // Immediate UI update
-            document.querySelectorAll('#comment-sidebar button').forEach(b => {
-                b.classList.remove('btn-primary');
-                b.classList.add('btn-secondary');
-            });
-            navBtn.classList.remove('btn-secondary');
-            navBtn.classList.add('btn-primary');
-
-            container.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-            // Release lock after animation (approx 1s)
-            scrollTimeout = setTimeout(() => { isManualScrolling = false; }, 1000);
-        };
-        sidebar.appendChild(navBtn);
-    } // End Loop
-
-    // Intersection Observer for scroll syncing
+    // Intersection Observer to update input on scroll
     const observer = new IntersectionObserver((entries) => {
-        if (isManualScrolling) return; // Skip if we are auto-scrolling
-
+        // Find the most visible page
         entries.forEach(entry => {
-            if (entry.isIntersecting) {
+            if (entry.isIntersecting && entry.intersectionRatio > 0.3) {
                 const index = entry.target.dataset.pIndex;
-
-                // Highlight button
-                document.querySelectorAll('#comment-sidebar button').forEach(b => {
-                    b.classList.remove('btn-primary');
-                    b.classList.add('btn-secondary');
-                });
-
-                const activeBtn = document.getElementById('nav-btn-' + index);
-                if (activeBtn) {
-                    activeBtn.classList.remove('btn-secondary');
-                    activeBtn.classList.add('btn-primary');
-
-                    // Safe Auto-scroll: Calculate position within sidebar
-                    // This avoids bubbling scroll events to the main window
-                    const sidebarRect = sidebar.getBoundingClientRect();
-                    const btnRect = activeBtn.getBoundingClientRect();
-
-                    // Check if button is out of view
-                    if (btnRect.top < sidebarRect.top || btnRect.bottom > sidebarRect.bottom) {
-                        const scrollTop = activeBtn.offsetTop - sidebar.offsetTop - (sidebar.offsetHeight / 2) + (activeBtn.offsetHeight / 2);
-                        sidebar.scrollTo({ top: scrollTop, behavior: 'smooth' });
-                    }
+                if (document.activeElement !== pageInput) {
+                    pageInput.value = index;
                 }
             }
         });
-    }, { threshold: 0.5 }); // 50% visibility required to switch
+    }, { threshold: [0.3] });
 
     // Observe all page containers
     document.querySelectorAll('.comment-page-container').forEach((el, idx) => {
@@ -227,53 +197,8 @@ async function renderCommentPages() {
         observer.observe(el);
     });
 
-    // JS-Based Sticky Toolbar (Fallback for CSS issues)
-    const toolbar = document.getElementById('comment-toolbar');
-    // Sidebar is already defined above
-
-    // Create placeholder for toolbar to prevent layout jump
-    const placeholder = document.createElement('div');
-    placeholder.id = 'toolbar-placeholder';
-    placeholder.style.display = 'none';
-    toolbar.parentNode.insertBefore(placeholder, toolbar);
-
-    const handleScroll = () => {
-        if (toolbar.classList.contains('hidden')) return;
-
-        const rect = placeholder.getBoundingClientRect();
-        const shouldStick = rect.top <= 0;
-
-        if (shouldStick) {
-            // Enable Sticky
-            if (!toolbar.classList.contains('is-stuck')) {
-                const height = toolbar.offsetHeight;
-                placeholder.style.height = height + 'px';
-                placeholder.style.display = 'block';
-
-                toolbar.classList.add('is-stuck');
-                toolbar.style.position = 'fixed';
-                toolbar.style.top = '0';
-                toolbar.style.left = '0';
-                toolbar.style.width = '100%';
-                toolbar.style.boxShadow = '0 4px 15px rgba(0,0,0,0.3)';
-
-                // Adjust Sidebar to sit below fixed toolbar
-                sidebar.style.top = (height + 10) + 'px';
-            }
-        } else {
-            // Disable Sticky
-            if (toolbar.classList.contains('is-stuck')) {
-                toolbar.classList.remove('is-stuck');
-                toolbar.style.position = 'static'; // or relative/sticky
-                toolbar.style.boxShadow = '';
-                placeholder.style.display = 'none';
-
-                sidebar.style.top = '10px'; // Reset sidebar top
-            }
-        }
-    };
-
-    window.addEventListener('scroll', handleScroll);
+    // JS-Based Sticky Toolbar logic removed as position:sticky top:0 is now sufficient 
+    // with sidebar gone and correct stacking context.
 }
 
 function addComment(pageIndex, x, y, wrapper, canvasWidth, canvasHeight) {
