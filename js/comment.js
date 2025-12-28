@@ -44,6 +44,31 @@ document.addEventListener('DOMContentLoaded', () => {
     // Global Drag Listeners
     window.addEventListener('mousemove', handleGlobalDragMove);
     window.addEventListener('mouseup', handleGlobalDragEnd);
+
+    // UI Helpers
+    const rotInput = document.getElementById('comment-rotation');
+    const rotVal = document.getElementById('rotation-value');
+    if (rotInput && rotVal) {
+        rotInput.addEventListener('input', () => {
+            rotVal.textContent = rotInput.value + '°';
+        });
+        rotVal.addEventListener('click', () => {
+            rotInput.value = 0;
+            rotVal.textContent = '0°';
+        });
+    }
+
+    const opInput = document.getElementById('comment-opacity');
+    const opVal = document.getElementById('opacity-value');
+    if (opInput && opVal) {
+        opInput.addEventListener('input', () => {
+            opVal.textContent = opInput.value;
+        });
+        opVal.addEventListener('click', () => {
+            opInput.value = 1;
+            opVal.textContent = '1.0';
+        });
+    }
 });
 
 async function handleCommentFile(file) {

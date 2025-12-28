@@ -322,17 +322,29 @@
                             </select>
 
                             <!-- Opacity -->
-                            <div style="display:flex; flex-direction:column; align-items:center; width:60px;">
-                                <label style="font-size:10px; margin:0;">Opacity</label>
+                            <div
+                                style="display:flex; flex-direction:column; align-items:center; width:90px; border-left:1px solid rgba(255,255,255,0.2); padding-left:10px;">
+                                <div
+                                    style="display:flex; justify-content:space-between; width:100%; margin-bottom:2px;">
+                                    <label style="font-size:10px; margin:0; opacity:0.8;">Opacity</label>
+                                    <span id="opacity-value" style="font-size:10px; font-weight:bold; cursor:pointer;"
+                                        title="Click to Reset">1.0</span>
+                                </div>
                                 <input type="range" id="comment-opacity" min="0.1" max="1" step="0.1" value="1"
-                                    style="width:100%;">
+                                    style="width:100%; cursor:ew-resize; accent-color: #ffc107;">
                             </div>
 
                             <!-- Rotation -->
-                            <div style="display:flex; flex-direction:column; align-items:center; width:60px;">
-                                <label style="font-size:10px; margin:0;">Rotate</label>
+                            <div
+                                style="display:flex; flex-direction:column; align-items:center; width:90px; border-left:1px solid rgba(255,255,255,0.2); padding-left:10px;">
+                                <div
+                                    style="display:flex; justify-content:space-between; width:100%; margin-bottom:2px;">
+                                    <label style="font-size:10px; margin:0; opacity:0.8;">Rotate</label>
+                                    <span id="rotation-value" style="font-size:10px; font-weight:bold; cursor:pointer;"
+                                        title="Click to Reset">0°</span>
+                                </div>
                                 <input type="range" id="comment-rotation" min="-180" max="180" step="15" value="0"
-                                    style="width:100%;">
+                                    style="width:100%; cursor:ew-resize; accent-color: #ffc107;">
                             </div>
                         </div>
 
