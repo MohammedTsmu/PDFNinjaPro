@@ -130,7 +130,21 @@ async function renderReorderGrid() {
         chosenClass: 'sortable-chosen',
         dragClass: 'sortable-drag',
         handle: '.page-card', // Entire card is draggable
-        onEnd: updatePageNumbers
+        onEnd: function (evt) {
+            // Track the dragged item
+            const draggedCard = evt.item;
+            const originalPage = parseInt(draggedCard.dataset.pageIndex, 10);
+            const newPosition = evt.newIndex + 1;
+            const oldPosition = evt.oldIndex + 1;
+
+            // Only mark as moved if it actually changed position
+            if (oldPosition !== newPosition) {
+                // Mark this specific card as intentionally moved
+                draggedCard.dataset.moved = 'true';
+            }
+
+            updatePageNumbers();
+        }
     });
 }
 
@@ -138,9 +152,24 @@ function updatePageNumbers() {
     // Update visual page numbers after reorder
     const cards = document.querySelectorAll('#reorder-grid .page-card');
     cards.forEach((card, idx) => {
+        const originalPage = parseInt(card.dataset.pageIndex, 10);
+        const currentPosition = idx + 1;
         const pageNum = card.querySelector('.page-num');
-        if (pageNum) {
-            pageNum.textContent = `Position ${idx + 1}`;
+        const wasIntentionallyMoved = card.dataset.moved === 'true';
+
+        if (wasIntentionallyMoved && originalPage !== currentPosition) {
+            // Page was intentionally dragged by user
+            pageNum.innerHTML = `<span class="original-page">Page ${originalPage}</span> → <span class="new-position">Pos ${currentPosition}</span>`;
+            card.classList.add('page-moved');
+        } else if (originalPage !== currentPosition) {
+            // Page shifted as side effect - show position but no highlight
+            pageNum.innerHTML = `Page ${originalPage} <span class="shifted-pos">(now ${currentPosition})</span>`;
+            card.classList.remove('page-moved');
+        } else {
+            // Page is in original position
+            pageNum.textContent = `Page ${originalPage}`;
+            card.classList.remove('page-moved');
+            delete card.dataset.moved; // Reset if moved back
         }
     });
 }

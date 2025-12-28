@@ -1409,3 +1409,28 @@ body {
     cursor: grabbing;
 }
 
+
+/* Reorder Move Indicator */
+.page-moved {
+    border: 2px solid var(--accent-color) !important;
+    background: rgba(244, 63, 94, 0.1) !important;
+}
+
+.page-num .original-page {
+    color: rgba(255, 255, 255, 0.6);
+    text-decoration: line-through;
+}
+
+.page-num .new-position {
+    color: var(--accent-color);
+    font-weight: bold;
+}
+
+
+/* Shifted Page (Side Effect) */
+.page-num .shifted-pos {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 11px;
+    font-style: italic;
+}
+
