@@ -197,8 +197,86 @@ async function renderCommentPages() {
         observer.observe(el);
     });
 
-    // JS-Based Sticky Toolbar logic removed as position:sticky top:0 is now sufficient 
-    // with sidebar gone and correct stacking context.
+    // JS-Based Sticky Toolbar (Robust Fallback)
+    const toolbar = document.getElementById('comment-toolbar');
+
+    // Create placeholder if not exists
+    let placeholder = document.getElementById('toolbar-placeholder');
+    if (!placeholder) {
+        placeholder = document.createElement('div');
+        placeholder.id = 'toolbar-placeholder';
+        placeholder.style.display = 'none'; // Initially hidden
+        toolbar.parentNode.insertBefore(placeholder, toolbar);
+    }
+
+    const handleScroll = () => {
+        if (toolbar.classList.contains('hidden')) return;
+
+        // Use placeholder or toolbar initial position
+        // If placeholder is active (block), use its top.
+        // If inactive (none), use toolbar's top.
+
+        let triggerPoint = 0;
+
+        if (placeholder.style.display === 'block') {
+            triggerPoint = placeholder.getBoundingClientRect().top;
+        } else {
+            triggerPoint = toolbar.getBoundingClientRect().top;
+        }
+
+        // If 'top' is <= 0 (relative to viewport), stick it.
+        // But 'top' changes as we scroll.
+        // We know the toolbar is near the top of the main area.
+        // A simpler check: Use window.scrollY vs the element's absolute offset.
+
+        // Let's rely on the placeholder's calculated 'top' relative to viewport window.
+        // If we are scrolling DOWN, top decreases.
+
+        if (triggerPoint <= 0) {
+            if (!toolbar.classList.contains('is-stuck')) {
+                const width = toolbar.offsetWidth;
+                const height = toolbar.offsetHeight;
+
+                placeholder.style.width = width + 'px';
+                placeholder.style.height = height + 'px';
+                placeholder.style.display = 'block';
+
+                toolbar.classList.add('is-stuck');
+                toolbar.style.position = 'fixed';
+                toolbar.style.top = '0';
+                toolbar.style.left = placeholder.getBoundingClientRect().left + 'px'; // Align with original position
+                toolbar.style.width = width + 'px';
+                toolbar.style.zIndex = '1000';
+                toolbar.style.boxShadow = '0 4px 15px rgba(0,0,0,0.3)';
+                toolbar.style.borderRadius = '0 0 8px 8px'; // Nice touch
+            }
+        } else {
+            // Unstick ONLY if we scroll BACK UP past the placeholder
+            // If the placeholder is visible, and its top is > 0, unstick.
+            if (placeholder.getBoundingClientRect().top > 0) {
+                if (toolbar.classList.contains('is-stuck')) {
+                    toolbar.classList.remove('is-stuck');
+                    toolbar.style.position = '';
+                    toolbar.style.top = '';
+                    toolbar.style.left = '';
+                    toolbar.style.width = '';
+                    toolbar.style.boxShadow = '';
+                    toolbar.style.borderRadius = '';
+                    placeholder.style.display = 'none';
+                }
+            }
+        }
+    };
+
+    // Attach to window scroll (since body scrolls)
+    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('resize', () => {
+        // Reset on resize to recalculate widths
+        if (toolbar.classList.contains('is-stuck')) {
+            toolbar.style.width = placeholder.offsetWidth + 'px';
+            toolbar.style.left = placeholder.getBoundingClientRect().left + 'px';
+        }
+    });
 }
 
 function addComment(pageIndex, x, y, wrapper, canvasWidth, canvasHeight) {
