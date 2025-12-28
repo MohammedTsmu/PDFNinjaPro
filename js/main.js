@@ -304,7 +304,9 @@ function displayAllPages() {
 
             pdfPreview.appendChild(pageContainer);
 
-            return page.render(renderContext).promise;
+            return page.render(renderContext).promise.then(() => {
+                page.cleanup(); // Free memory
+            });
         }).catch(function (error) {
             console.error('Error loading page', pageNumber);
             if (spinnerText) spinnerText.innerText = `Error on page ${pageNumber}. Retrying...`;
