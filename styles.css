@@ -672,9 +672,40 @@ body {
   transform: translateY(0);
 }
 
+.merge-actions .btn-sm:hover {
+  transform: scale(1.1);
+}
+
+/* Quick Extract Button in Grid (Restored) */
+.quick-split-btn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.8);
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+}
+
+.page-container:hover .quick-split-btn {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
 .quick-split-btn:hover {
   background: #059669;
-  transform: translateY(0) scale(1.1);
+  transform: translate(-50%, -50%) scale(1.1);
 }
 
 /* Merge Selection Modal */
@@ -770,6 +801,155 @@ body {
 
 .modal-page-item.selected:after {
   opacity: 1;
+}
+
+/* =========================================
+   Merge Tool Styles (Premium Redesign)
+   ========================================= */
+.merge-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.merge-card {
+  background: linear-gradient(145deg, #1e293b, #0f172a);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 15px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.merge-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.merge-thumb {
+  width: 80px;
+  height: 110px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #000;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.merge-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  /* Show full page usually better for docs */
+  opacity: 0.9;
+  transition: opacity 0.3s;
+}
+
+.merge-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  /* Text truncation fix */
+}
+
+.merge-filename {
+  font-weight: 600;
+  color: var(--text-color);
+  font-size: 1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.5px;
+}
+
+.merge-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.merge-input-group {
+  display: flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  padding: 4px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  flex: 1;
+  max-width: 300px;
+}
+
+.merge-input-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-right: 8px;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.merge-input-group input {
+  background: transparent;
+  border: none;
+  color: var(--primary-color);
+  font-weight: 500;
+  width: 100%;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.merge-input-group input::placeholder {
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.rotate-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.rotate-btn:hover {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+  transform: scale(1.05);
+}
+
+.merge-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  padding-left: 15px;
+}
+
+.merge-actions .btn-sm {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
 }
 
 .modal-page-item .check-icon {
