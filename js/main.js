@@ -201,8 +201,19 @@ document.addEventListener('DOMContentLoaded', function () {
                 num.textContent = pageNum;
                 container.appendChild(num);
 
+                // Quick Extract Button
+                const dlBtn = document.createElement('button');
+                dlBtn.className = 'quick-split-btn';
+                dlBtn.innerHTML = '<i class="fas fa-download"></i>';
+                dlBtn.title = 'Extract this page';
+                dlBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    if (window.extractSinglePage) window.extractSinglePage(pageNum);
+                };
+                container.appendChild(dlBtn);
+
                 // Re-apply selection if needed
-                if (selectedPages.has(pageNum)) container.classList.add('selected');
+                if (window.selectedPages && window.selectedPages.has(pageNum)) container.classList.add('selected');
             }
 
             page.cleanup();

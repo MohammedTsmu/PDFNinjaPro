@@ -1,3 +1,110 @@
+// Quick Extract Helper
+window.extractSinglePage = async function (pageNum) {
+    const fileInput = document.getElementById('pdf-upload');
+    if (!fileInput.files[0]) return;
+
+    try {
+        const file = fileInput.files[0];
+        const arrayBuffer = await file.arrayBuffer();
+        const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+        const newPdf = await PDFLib.PDFDocument.create();
+
+        const [copiedPage] = await newPdf.copyPages(pdfDoc, [pageNum - 1]);
+        newPdf.addPage(copiedPage);
+
+        const pdfBytes = await newPdf.save();
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${file.name.replace('.pdf', '')}_Page_${pageNum}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+    } catch (e) {
+        console.error('Quick extract failed', e);
+        alert('Failed to extract page');
+    }
+};
+
+
+
+// Batch Split Logic
+document.getElementById('batch-split-btn')?.addEventListener('click', async function () {
+    const list = document.getElementById('batch-download-list');
+    const sizeInput = document.getElementById('batch-size');
+    const fileInput = document.getElementById('pdf-upload');
+
+    if (!window.totalPageCount || !sizeInput.value || !fileInput.files[0]) {
+        alert('Please load a PDF and enter a batch size.');
+        return;
+    }
+
+    const size = parseInt(sizeInput.value);
+    if (size < 1) return;
+
+    list.innerHTML = '';
+    list.classList.remove('hidden');
+    list.innerHTML = '<span class="text-muted">Generating links...</span>';
+
+    try {
+        const file = fileInput.files[0];
+        const arrayBuffer = await file.arrayBuffer();
+        const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+        const total = pdfDoc.getPageCount();
+        const numFiles = Math.ceil(total / size);
+
+        list.innerHTML = ''; // Clear loading text
+
+        for (let i = 0; i < numFiles; i++) {
+            const start = i * size;
+            const end = Math.min(start + size, total);
+            // 0-based index for copy
+            const indices = [];
+            for (let p = start; p < end; p++) indices.push(p);
+
+            // Generate Button
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-sm btn-outline-light';
+            btn.style.margin = '2px';
+            btn.innerHTML = `<i class="fas fa-file-pdf"></i> Part ${i + 1} (${start + 1}-${end})`;
+
+            btn.onclick = async () => {
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+                try {
+                    const newPdf = await PDFLib.PDFDocument.create();
+                    const copiedPages = await newPdf.copyPages(pdfDoc, indices);
+                    copiedPages.forEach(p => newPdf.addPage(p));
+
+                    const pdfBytes = await newPdf.save();
+                    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                    const url = URL.createObjectURL(blob);
+
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${file.name.replace('.pdf', '')}_Part_${i + 1}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+
+                    btn.innerHTML = `<i class="fas fa-check"></i> Done`;
+                    setTimeout(() => btn.innerHTML = `<i class="fas fa-file-pdf"></i> Part ${i + 1} (${start + 1}-${end})`, 2000);
+                } catch (e) {
+                    console.error(e);
+                    btn.innerHTML = 'Error';
+                }
+            };
+            list.appendChild(btn);
+        }
+
+    } catch (e) {
+        console.error(e);
+        alert('Error preparing batch split.');
+    }
+});
+
 // Bookmark Split Logic
 document.getElementById('split-by-bookmarks-btn')?.addEventListener('click', async function () {
     if (!window.pdfOutline || window.pdfOutline.length === 0) return;
