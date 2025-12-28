@@ -78,37 +78,7 @@
         <main class="main-content">
 
             <!-- Upload Area -->
-            <!-- Premium Drop Zone (2025 Design) -->
-            <div class="upload-zone" id="drop-zone">
-                <div class="upload-content">
-                    <div class="upload-icon-wrapper">
-                        <!-- Inline SVG for futuristic folder icon -->
-                        <svg class="upload-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="1.5">
-                            <path
-                                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                                stroke-linecap="round" stroke-linejoin="round" />
-                        </svg>
-                        <div class="upload-ripple"></div>
-                    </div>
-                    <h2 class="upload-title">Upload Documents</h2>
-                    <p class="upload-subtitle">Drag & Drop PDF or <span class="highlight">Browse</span></p>
-                    <input type="file" id="pdf-upload" accept="application/pdf" hidden>
-                </div>
 
-                <!-- Magic Status Card -->
-                <div id="file-status-card" class="file-status-card hidden">
-                    <div class="file-icon"><i class="fas fa-file-pdf"></i></div>
-                    <div class="file-info">
-                        <p class="file-name" id="status-filename">doc.pdf</p>
-                        <div class="file-meta">
-                            <span id="status-size">0 MB</span> <span class="divider">•</span> <span
-                                id="status-pages">Scanning...</span>
-                        </div>
-                    </div>
-                    <div class="status-indicator processing"></div>
-                </div>
-            </div>
 
 
 
@@ -117,6 +87,35 @@
 
                 <!-- Split Tool -->
                 <div id="split" class="tool-panel active">
+                    <!-- Premium Drop Zone (Moved inside Split) -->
+                    <div class="upload-zone" id="drop-zone" style="margin-bottom: 20px;">
+                        <div class="upload-content">
+                            <div class="upload-icon-wrapper">
+                                <svg class="upload-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="1.5">
+                                    <path
+                                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                        stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                                <div class="upload-ripple"></div>
+                            </div>
+                            <h2 class="upload-title">Upload to Split</h2>
+                            <p class="upload-subtitle">Drag & Drop PDF or <span class="highlight">Browse</span></p>
+                            <input type="file" id="pdf-upload" accept="application/pdf" hidden>
+                        </div>
+                        <div id="file-status-card" class="file-status-card hidden">
+                            <div class="file-icon"><i class="fas fa-file-pdf"></i></div>
+                            <div class="file-info">
+                                <p class="file-name" id="status-filename">doc.pdf</p>
+                                <div class="file-meta">
+                                    <span id="status-size">0 MB</span> <span class="divider">•</span> <span
+                                        id="status-pages">Scanning...</span>
+                                </div>
+                            </div>
+                            <div class="status-indicator processing"></div>
+                        </div>
+                    </div>
+
                     <div class="tool-header">
                         <h3><i class="fas fa-cut"></i> Split PDF</h3>
                         <p class="text-muted" style="font-size: 0.9rem; margin-top: 5px;">Select pages in the preview
@@ -158,14 +157,34 @@
                 </div>
 
                 <!-- Merge Tool -->
-                <div id="merge" class="tool-panel">
+                <div id="merge" class="tool-panel hidden">
                     <div class="tool-header">
                         <h3><i class="fas fa-compress-alt"></i> Merge PDFs</h3>
+                        <p class="text-muted">Combine multiple PDF files into one.</p>
                     </div>
-                    <input type="file" id="pdf-merge-upload" accept="application/pdf" multiple class="form-control"
-                        style="margin-bottom: 20px;">
-                    <button id="merge-btn" class="btn btn-secondary"><i class="fas fa-code-merge"></i> Merge Selected
-                        Files</button>
+
+                    <div class="upload-zone" id="merge-drop-zone">
+                        <div class="upload-icon-wrapper">
+                            <svg class="upload-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 11l3-3m0 0l3 3m-3-3v8m0-13a9 9 0 110 18 9 9 0 010-18z" />
+                            </svg>
+                            <div class="upload-ripple"></div>
+                        </div>
+                        <h2 class="upload-title">Drop PDFs here</h2>
+                        <p class="upload-subtitle">or click to browse</p>
+                        <input type="file" id="pdf-merge-upload" accept="application/pdf" multiple
+                            style="display: none;">
+                    </div>
+
+                    <div id="merge-file-list"
+                        style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;"></div>
+
+                    <button id="merge-btn" class="btn btn-primary"
+                        style="margin-top: 20px; width: 100%; display: none;">
+                        <i class="fas fa-code-merge"></i> Merge Selected Files
+                    </button>
                     <a id="merge-download-link" href="#" class="btn btn-primary hidden" style="margin-top: 20px;"><i
                             class="fas fa-download"></i> Download Merged</a>
                 </div>
@@ -237,20 +256,23 @@
 
             </section>
 
-            <!-- Selection Toolbar -->
-            <div id="selection-toolbar" class="selection-toolbar hidden"
-                style="margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
-                <span class="text-muted" style="margin-right: 10px;">Quick Select:</span>
-                <button id="sel-all" class="btn btn-sm btn-dark">All</button>
-                <button id="sel-none" class="btn btn-sm btn-dark">None</button>
-                <button id="sel-inverse" class="btn btn-sm btn-dark">Inverse</button>
-                <button id="sel-odd" class="btn btn-sm btn-dark">Odd</button>
-                <button id="sel-even" class="btn btn-sm btn-dark">Even</button>
-            </div>
+            <!-- Shared Workspace for Single-Doc Tools (Split, Rotate, Convert, etc.) -->
+            <div id="single-doc-workspace">
+                <!-- Selection Toolbar -->
+                <div id="selection-toolbar" class="selection-toolbar hidden"
+                    style="margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                    <span class="text-muted" style="margin-right: 10px;">Quick Select:</span>
+                    <button id="sel-all" class="btn btn-sm btn-dark">All</button>
+                    <button id="sel-none" class="btn btn-sm btn-dark">None</button>
+                    <button id="sel-inverse" class="btn btn-sm btn-dark">Inverse</button>
+                    <button id="sel-odd" class="btn btn-sm btn-dark">Odd</button>
+                    <button id="sel-even" class="btn btn-sm btn-dark">Even</button>
+                </div>
 
-            <!-- Preview Area -->
-            <div id="pdf-preview" class="pdf-preview">
-                <!-- Pages will be injected here via JS -->
+                <!-- Preview Area -->
+                <div id="pdf-preview" class="pdf-preview">
+                    <!-- Pages will be injected here via JS -->
+                </div>
             </div>
 
             <!-- Scroll Buttons (Hidden initially) -->
@@ -299,21 +321,37 @@
             const navButtons = document.querySelectorAll('.nav-btn');
             const toolPanels = document.querySelectorAll('.tool-panel');
 
+            // Set initial state (Split active)
+            toolPanels.forEach(p => {
+                if (p.id !== 'split') p.classList.add('hidden');
+            });
+
             navButtons.forEach(btn => {
                 btn.addEventListener('click', () => {
-                    // Remove active class from all buttons and panels
+                    // 1. Sidebar Buttons
                     navButtons.forEach(b => b.classList.remove('active'));
-                    toolPanels.forEach(p => p.classList.remove('active'));
-
-                    // Add active class to clicked button
                     btn.classList.add('active');
 
-                    // Show corresponding panel
+                    // 2. Panels Visibility
                     const targetId = btn.getAttribute('data-target');
-                    const targetPanel = document.getElementById(targetId);
-                    if (targetPanel) {
-                        targetPanel.classList.add('active');
+                    const workspace = document.getElementById('single-doc-workspace');
+
+                    // Toggle Workspace (Hide for Merge, Show for others)
+                    if (targetId === 'merge') {
+                        if (workspace) workspace.classList.add('hidden');
+                    } else {
+                        if (workspace) workspace.classList.remove('hidden');
                     }
+
+                    toolPanels.forEach(p => {
+                        if (p.id === targetId) {
+                            p.classList.remove('hidden');
+                            p.classList.add('active'); // Optional, for CSS animations
+                        } else {
+                            p.classList.add('hidden');
+                            p.classList.remove('active');
+                        }
+                    });
                 });
             });
         });
