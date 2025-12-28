@@ -193,12 +193,74 @@
                 </div>
 
                 <!-- Convert Tool -->
-                <div id="convert" class="tool-panel">
+                <div id="convert" class="tool-panel hidden">
                     <div class="tool-header">
-                        <h3><i class="fas fa-image"></i> Convert to Images</h3>
+                        <h3><i class="fas fa-image"></i> Convert PDF to Images</h3>
+                        <p class="text-muted">Save pages as high-quality JPG or PNG images.</p>
                     </div>
-                    <button id="convert-btn" class="btn btn-info"><i class="fas fa-images"></i> Convert Selected
-                        Pages</button>
+
+                    <div class="upload-zone" id="convert-drop-zone">
+                        <div class="upload-icon-wrapper">
+                            <svg class="upload-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <div class="upload-ripple"></div>
+                        </div>
+                        <h2 class="upload-title">Drop PDF here</h2>
+                        <input type="file" id="convert-upload" accept="application/pdf" style="display: none;">
+                    </div>
+
+                    <div id="convert-file-info" class="file-status-card hidden">
+                        <div class="file-icon"><i class="fas fa-file-pdf"></i></div>
+                        <div class="file-details">
+                            <div class="filename" id="convert-filename">filename.pdf</div>
+                            <div class="meta" id="convert-filesize">0 MB</div>
+                        </div>
+                        <button class="btn-close" id="convert-reset-btn"><i class="fas fa-times"></i></button>
+                    </div>
+
+                    <div id="convert-settings" class="settings-panel hidden">
+                        <div class="setting-group">
+                            <label class="setting-label">Format</label>
+                            <div class="toggle-group">
+                                <input type="radio" name="img-fmt" id="fmt-jpg" value="jpeg" checked>
+                                <label for="fmt-jpg" class="toggle-btn">JPG</label>
+
+                                <input type="radio" name="img-fmt" id="fmt-png" value="png">
+                                <label for="fmt-png" class="toggle-btn">PNG</label>
+                            </div>
+                        </div>
+
+                        <div class="setting-group" id="quality-group">
+                            <div class="setting-header">
+                                <label class="setting-label">Quality</label>
+                                <span class="setting-value" id="quality-val">High (0.9)</span>
+                            </div>
+                            <input type="range" id="img-quality" class="slider" min="0.5" max="1.0" step="0.1"
+                                value="0.9">
+                        </div>
+                    </div>
+
+                    <button id="start-convert-btn" class="btn btn-primary hidden" style="width:100%; margin-top:20px;">
+                        <i class="fas fa-bolt"></i> Convert to Images
+                    </button>
+
+                    <div id="convert-progress-container" class="hidden" style="margin-top:20px;">
+                        <div
+                            style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:0.9em; color:#ccc;">
+                            <span>Converting...</span>
+                            <span><span id="convert-current-page">0</span> / <span
+                                    id="convert-total-pages">0</span></span>
+                        </div>
+                        <div class="progress-bar"
+                            style="background:#333; height:8px; border-radius:4px; overflow:hidden;">
+                            <div class="progress-fill" id="convert-progress-fill"
+                                style="width:0%; height:100%; background:var(--primary-color); transition:width 0.1s;">
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Comment Tool -->
@@ -339,12 +401,17 @@
         <div class="spinner"></div>
     </div>
 
-    <!-- Scripts -->
+    <!-- Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.10.2/Sortable.min.js"></script>
-    <!-- Removed Bootstrap JS dependency -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
+    <!-- App Scripts -->
     <script src="js/main.js"></script>
     <script src="js/split.js"></script>
     <script src="js/compress.js"></script>
