@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PDF Ninja Pro 2025</title>
-    <link rel="stylesheet" href="styles.css?v=9">
+    <link rel="stylesheet" href="styles.css?v=10">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <!-- Favicon -->
@@ -497,14 +497,47 @@
                 </div>
 
                 <!-- Reorder Tool -->
-                <div id="reorder" class="tool-panel">
+                <div id="reorder" class="tool-panel hidden">
                     <div class="tool-header">
                         <h3><i class="fas fa-sort"></i> Reorder Pages</h3>
+                        <p class="text-muted">Drag and drop pages to rearrange their order.</p>
                     </div>
-                    <p style="color: var(--text-muted); margin-bottom: 20px;">Drag and drop pages in the preview area
-                        below to reorder, then click the button.</p>
-                    <button id="reorder-btn" class="btn btn-primary"><i class="fas fa-sort-amount-down"></i> Save
-                        Order</button>
+
+                    <!-- Drop Zone -->
+                    <div class="upload-zone" id="reorder-drop-zone">
+                        <div class="upload-icon-wrapper">
+                            <svg class="upload-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                            </svg>
+                            <div class="upload-ripple"></div>
+                        </div>
+                        <h2 class="upload-title">Drop PDF here</h2>
+                        <input type="file" id="reorder-upload" accept="application/pdf" style="display: none;">
+                    </div>
+
+                    <!-- File Info -->
+                    <div id="reorder-file-info" class="file-status-card hidden">
+                        <div class="file-icon"><i class="fas fa-file-pdf"></i></div>
+                        <div class="file-details">
+                            <div class="filename" id="reorder-filename">filename.pdf</div>
+                            <div class="meta" id="reorder-filesize">0 MB</div>
+                        </div>
+                        <button class="btn-close" id="reorder-reset-btn"><i class="fas fa-times"></i></button>
+                    </div>
+
+                    <!-- Toolbar -->
+                    <div id="reorder-toolbar" class="toolbar-container hidden"
+                        style="margin-top:15px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; padding:10px; background:rgba(255,255,255,0.05); border-radius:8px;">
+                        <span class="text-muted"><i class="fas fa-info-circle"></i> Drag pages to reorder</span>
+                        <div style="flex-grow:1;"></div>
+                        <button id="reorder-save-btn" class="btn btn-primary"><i class="fas fa-download"></i> Save
+                            Reordered PDF</button>
+                    </div>
+
+                    <!-- Page Grid (Sortable) -->
+                    <div id="reorder-grid" class="page-grid hidden" style="margin-top:20px;"></div>
                 </div>
 
                 <!-- Background Tool -->

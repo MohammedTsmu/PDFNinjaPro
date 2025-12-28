@@ -1365,3 +1365,47 @@ body {
     }
 }
 
+
+/* --- Reorder Tool Styles --- */
+
+/* Drag Handle Icon */
+.drag-handle-icon {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 16px;
+    cursor: grab;
+    transition: color 0.2s, transform 0.2s;
+}
+
+.page-card:hover .drag-handle-icon {
+    color: var(--accent-color);
+    transform: scale(1.2);
+}
+
+/* Sortable Classes */
+.sortable-ghost {
+    opacity: 0.4;
+    background: var(--accent-color) !important;
+}
+
+.sortable-chosen {
+    transform: scale(1.05);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    z-index: 100;
+}
+
+.sortable-drag {
+    opacity: 0.9;
+}
+
+/* Reorder Card Cursor */
+.reorder-card {
+    cursor: grab;
+}
+
+.reorder-card:active {
+    cursor: grabbing;
+}
+
