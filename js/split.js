@@ -138,9 +138,19 @@ document.getElementById('split-btn').addEventListener('click', async function ()
                     .filter(p => p > 0 && p <= pdfDoc.getPageCount())
                     .map(p => p - 1)
                     .sort((a, b) => a - b);
-            } else if (selectedPages && selectedPages.size > 0) {
-                // Fallback if input is empty but Set has data (should be synced, but just in case)
-                finalPageIndices = Array.from(selectedPages).map(p => p - 1).sort((a, b) => a - b);
+
+            } else {
+                // VISUAL ORDER MODE regarding Global Selection
+                // We scan the DOM to see the actual order of pages (handling reordering)
+                const domPages = document.querySelectorAll('.page-container');
+                finalPageIndices = [];
+
+                domPages.forEach(el => {
+                    const pageNum = parseInt(el.dataset.pageNumber);
+                    if (window.selectedPages && window.selectedPages.has(pageNum)) {
+                        finalPageIndices.push(pageNum - 1); // 0-based for pdf-lib
+                    }
+                });
             }
 
             if (finalPageIndices.length === 0) {

@@ -157,6 +157,19 @@ document.addEventListener('DOMContentLoaded', function () {
                 await new Promise(resolve => setTimeout(resolve, 50));
             }
         }
+
+        // 3. Init Sortable (Drag & Drop)
+        if (typeof Sortable !== 'undefined') {
+            new Sortable(container, {
+                animation: 150,
+                ghostClass: 'sortable-ghost',
+                onEnd: function () {
+                    console.log('Reorder happened');
+                    // Optional: Update page numbers visually if you want, 
+                    // but keeping original numbers is often better for reference.
+                }
+            });
+        }
     }
 
     async function renderSinglePage(pdfDoc, pageNum) {
