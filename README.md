@@ -30,6 +30,15 @@
 
 ---
 
+## 🔒 Privacy First
+
+- **100% Client-Side** — All processing happens in your browser
+- **No Uploads** — Your files never leave your device
+- **No Registration** — Jump in and start editing immediately
+- **Encrypted PDF Support** — Works with password-protected PDFs
+
+---
+
 ## 🎯 Screenshots
 
 <div align="center">
@@ -50,9 +59,12 @@ git clone https://github.com/MohammedTsmu/PDFNinjaPro.git
 cd PDFNinjaPro
 
 # Open in browser (no build required!)
-start index.html   # Windows
+start index.html   # Windows - Opens landing page
 open index.html    # macOS
 xdg-open index.html # Linux
+
+# Or open the app directly
+start app.html     # Windows - Opens PDF tools
 ```
 
 Or simply visit the **[Live Demo](https://mohammedtsmu.github.io/PDFNinjaPro)** →
@@ -65,6 +77,7 @@ Or simply visit the **[Live Demo](https://mohammedtsmu.github.io/PDFNinjaPro)** 
 - **[PDF-Lib](https://pdf-lib.js.org/)** — PDF manipulation
 - **[Sortable.js](https://sortablejs.github.io/Sortable/)** — Drag & drop
 - **[JSZip](https://stuk.github.io/jszip/)** — ZIP creation
+- **[FileSaver.js](https://github.com/eligrey/FileSaver.js/)** — File downloads
 - **[Font Awesome](https://fontawesome.com/)** — Icons
 
 ---
@@ -76,6 +89,7 @@ Or simply visit the **[Live Demo](https://mohammedtsmu.github.io/PDFNinjaPro)** 
 - **Fully responsive** (mobile-friendly)
 - Smooth **animations & transitions**
 - **Collapsible sidebar** navigation
+- **SEO optimized** landing page
 
 ---
 
@@ -83,8 +97,10 @@ Or simply visit the **[Live Demo](https://mohammedtsmu.github.io/PDFNinjaPro)** 
 
 ```
 PDFNinjaPro/
-├── index.html          # Main app
-├── styles.css          # Styling
+├── index.html          # SEO landing page (homepage)
+├── app.html            # Main PDF tools application
+├── landing.css         # Landing page styles
+├── styles.css          # App styles
 └── js/
     ├── main.js         # Core logic
     ├── split.js        # Split tool
@@ -97,6 +113,18 @@ PDFNinjaPro/
     ├── background.js   # Backgrounds
     └── images-to-pdf.js # IMG to PDF
 ```
+
+---
+
+## 🔍 SEO Features
+
+The landing page includes:
+- Comprehensive **meta tags** (title, description, keywords)
+- **Open Graph** tags for social sharing
+- **Twitter Card** support
+- **JSON-LD** structured data for rich search results
+- **Semantic HTML5** structure
+- **FAQ section** for featured snippets
 
 ---
 
