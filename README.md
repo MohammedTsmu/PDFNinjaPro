@@ -7,6 +7,7 @@
 **Next-Gen PDF Tools** — A modern, feature-rich web application for all your PDF needs.
 
 [![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-Visit_Now-blue?style=for-the-badge)](https://mohammedtsmu.github.io/PDFNinjaPro)
+[![Version](https://img.shields.io/badge/Version-1.1.4-orange?style=for-the-badge)](https://github.com/MohammedTsmu/PDFNinjaPro/releases)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 [![Made with Love](https://img.shields.io/badge/Made_with-❤️-red?style=for-the-badge)](https://github.com/MohammedTsmu)
 
