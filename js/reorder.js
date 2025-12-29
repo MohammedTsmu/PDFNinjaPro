@@ -274,7 +274,7 @@ async function saveReorderedPDF() {
 
     try {
         const arrayBuffer = await reorderFile.arrayBuffer();
-        const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+        const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
         const newPdfDoc = await PDFLib.PDFDocument.create();
 
         // Get new order from DOM

@@ -6,7 +6,7 @@ window.extractSinglePage = async function (pageNum) {
     try {
         const file = fileInput.files[0];
         const arrayBuffer = await file.arrayBuffer();
-        const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+        const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
         const newPdf = await PDFLib.PDFDocument.create();
 
         const [copiedPage] = await newPdf.copyPages(pdfDoc, [pageNum - 1]);
@@ -52,7 +52,7 @@ document.getElementById('batch-split-btn')?.addEventListener('click', async func
     try {
         const file = fileInput.files[0];
         const arrayBuffer = await file.arrayBuffer();
-        const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+        const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
         const total = pdfDoc.getPageCount();
         const numFiles = Math.ceil(total / size);
 
@@ -257,8 +257,10 @@ document.getElementById('split-btn').addEventListener('click', async function ()
         console.log('Preparing to split PDF...');
         const fileReader = new FileReader();
         fileReader.onload = async function () {
+            const splitBtn = document.getElementById('split-btn');
+            try {
             const typedarray = new Uint8Array(this.result);
-            const pdfDoc = await PDFLib.PDFDocument.load(typedarray);
+            const pdfDoc = await PDFLib.PDFDocument.load(typedarray, { ignoreEncryption: true });
             const pdfLibDoc = await PDFLib.PDFDocument.create();
 
             let finalPageIndices = [];
@@ -346,9 +348,17 @@ document.getElementById('split-btn').addEventListener('click', async function ()
             setTimeout(() => notification.classList.add('hidden'), 5000);
 
             console.log('PDF split complete.');
+            } catch (e) {
+                console.error('Split error:', e);
+                alert('Error splitting PDF: ' + e.message);
+                splitBtn.innerHTML = '<i class="fas fa-cut"></i> Split PDF';
+                splitBtn.disabled = false;
+            }
         };
         fileReader.readAsArrayBuffer(file);
     } else {
         alert('Please upload a PDF first.');
+        this.innerHTML = '<i class="fas fa-cut"></i> Split PDF';
+        this.disabled = false;
     }
 });

@@ -204,7 +204,7 @@ async function saveBackgroundPDF() {
         const opacity = parseFloat(document.getElementById('background-opacity').value);
 
         const arrayBuffer = await backgroundFile.arrayBuffer();
-        const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+        const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
         const newPdfDoc = await PDFLib.PDFDocument.create();
 
         // Copy all pages, apply background to selected ones

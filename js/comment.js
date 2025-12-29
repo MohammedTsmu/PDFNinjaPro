@@ -514,7 +514,7 @@ async function saveCommentedPDF() {
 
     try {
         const arrayBuffer = await commentFile.arrayBuffer();
-        const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+        const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
         const pages = pdfDoc.getPages();
 
         // 1. Create a Hidden Helper Container for Snapshotting

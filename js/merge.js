@@ -506,7 +506,7 @@ mergeBtn?.addEventListener('click', async function () {
 
         for (const item of mergeState) {
             const arrayBuffer = await item.file.arrayBuffer();
-            const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+            const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
             const totalPages = pdfDoc.getPageCount();
 
             // 1. Parse Range (e.g. "1-3, 5")

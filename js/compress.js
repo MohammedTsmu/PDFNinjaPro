@@ -11,7 +11,7 @@ if (compressBtn) {
             fileReader.onload = async function () {
                 try {
                     const typedarray = new Uint8Array(this.result);
-                    const pdfDoc = await PDFLib.PDFDocument.load(typedarray);
+                    const pdfDoc = await PDFLib.PDFDocument.load(typedarray, { ignoreEncryption: true });
 
                     // Create new PDF
                     const newPdfDoc = await PDFLib.PDFDocument.create();

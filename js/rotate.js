@@ -204,7 +204,7 @@ async function saveRotatedPDF() {
 
     try {
         const arrayBuffer = await rotateFile.arrayBuffer();
-        const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+        const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
         const pages = pdfDoc.getPages();
 
         rotatePages.forEach(p => {
