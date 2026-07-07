@@ -192,6 +192,32 @@ function linesToMarkdown(lines, bodySize) {
     return md.trim();
 }
 
+// OCR each page (English) and return the recognized text — used when a PDF has
+// no selectable text (scanned / image-only).
+async function ocrMarkdownFallback(total, statusEl, resultArea) {
+    const worker = await Tesseract.createWorker('eng');
+    try {
+        const parts = [];
+        for (let i = 1; i <= total; i++) {
+            statusEl.textContent = `OCR page ${i} of ${total}…`;
+            const page = await mdPdfDoc.getPage(i);
+            const viewport = page.getViewport({ scale: 2 });
+            const canvas = document.createElement('canvas');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+            page.cleanup();
+            const { data } = await worker.recognize(canvas);
+            const txt = (data.text || '').trim();
+            if (txt) parts.push(txt);
+            if (resultArea) { resultArea.value = parts.join('\n\n'); resultArea.scrollTop = resultArea.scrollHeight; }
+        }
+        return parts.join('\n\n');
+    } finally {
+        try { await worker.terminate(); } catch (e) { /* ignore */ }
+    }
+}
+
 async function startMarkdown() {
     if (!mdPdfDoc) return;
 
@@ -231,7 +257,21 @@ async function startMarkdown() {
         });
 
         mdResultFull = pagesMd.join('\n\n');
-        resultArea.value = mdResultFull || '_No selectable text found — this PDF may be image-only (scanned)._';
+
+        // Fallback: scanned / image-only PDFs have no text layer — recover it with OCR.
+        if (!mdResultFull.trim()) {
+            if (typeof Tesseract === 'undefined') {
+                resultArea.value = '_No selectable text found — this PDF looks scanned, but the OCR engine could not load (check your connection)._';
+            } else {
+                status.textContent = 'No text layer found — running OCR…';
+                resultArea.value = 'No selectable text found. Running OCR — this can take a while…';
+                mdResultFull = await ocrMarkdownFallback(total, status, resultArea);
+                resultArea.value = mdResultFull || '_OCR found no readable text._';
+                if (window.showToast && mdResultFull) window.showToast('Scanned PDF — used OCR to recover the text.', 'info');
+            }
+        } else {
+            resultArea.value = mdResultFull;
+        }
         status.textContent = `Done — ${total} page(s) converted.`;
 
         startBtn.innerHTML = '<i class="fas fa-check"></i> Done';
