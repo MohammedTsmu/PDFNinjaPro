@@ -751,93 +751,58 @@ async function saveCommentedPDF() {
         const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
         const pages = pdfDoc.getPages();
 
-        // 1. Create a Hidden Helper Container for Snapshotting
-        const helper = document.createElement('div');
-        helper.style.position = 'absolute';
-        helper.style.left = '-9999px';
-        helper.style.top = '-9999px';
-        helper.style.backgroundColor = 'transparent';
-        helper.style.transform = 'translateZ(0)';
-        document.body.appendChild(helper);
+        // 1. Render text comments as native, SELECTABLE pdf-lib text.
+        // Embed the three standard fonts once and map c.fontName -> font.
+        const stdFonts = {
+            Helvetica: await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica),
+            TimesRoman: await pdfDoc.embedFont(PDFLib.StandardFonts.TimesRoman),
+            Courier: await pdfDoc.embedFont(PDFLib.StandardFonts.Courier)
+        };
 
         for (const c of comments) {
+            if (!c.text) continue;
             const page = pages[c.pageIndex - 1];
             const { width, height } = page.getSize();
+            const font = stdFonts[c.fontName] || stdFonts.Helvetica;
 
-            // Reset helper
-            helper.innerHTML = '';
+            // Comments are stored at scale 1.0 (canvas px ≈ PDF points); scale to
+            // this page's real size in case they differ (matches the drawings loop).
+            const sx = width / (c.canvasWidth || width);
+            const sy = height / (c.canvasHeight || height);
 
-            // Create element
-            const el = document.createElement('div');
-            el.innerText = c.text;
-            el.style.fontFamily = c.fontName;
-            el.style.fontSize = c.size + 'px';
-            el.style.color = c.color;
-            el.style.opacity = c.opacity;
-            el.style.display = 'inline-block';
-            el.style.whiteSpace = 'pre-wrap';
-            el.style.lineHeight = '1.2';
-            el.style.padding = '5px';
+            const fontSize = c.size * sy;
+            const lineHeight = fontSize * 1.2;
+            const rgb = hexToRgb(c.color);
+            const color = PDFLib.rgb(rgb.r / 255, rgb.g / 255, rgb.b / 255);
+            const opacity = parseFloat(c.opacity);
 
-            helper.appendChild(el);
+            // On screen the comment is CENTER-anchored (translate(-50%,-50%)) at
+            // (c.x, c.y) in y-down canvas coords. Convert to a y-up PDF center.
+            const centerX = c.x * sx;
+            const centerY = height - c.y * sy;
 
-            // Wait for render
-            await new Promise(r => setTimeout(r, 10));
+            const lines = String(c.text).split('\n');
+            const blockHeight = lines.length * lineHeight;
 
-            // Capture
-            const canvas = await html2canvas(el, {
-                backgroundColor: null,
-                scale: 2,
-                logging: false,
-                useCORS: true
-            });
-
-            // Convert to PNG Blob
-            const pngBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-            const pngBuffer = await pngBlob.arrayBuffer();
-            const pngImage = await pdfDoc.embedPng(pngBuffer);
-
-            // Calculate Dimensions
-            const imgWidth = pngImage.width;
-            const imgHeight = pngImage.height;
-
-            const drawWidth = imgWidth / 2;
-            const drawHeight = imgHeight / 2;
-
-            // Coordinate Calculation
-            const scaleX = width / (c.canvasWidth || width);
-            const scaleY = height / (c.canvasHeight || height);
-
-            const scaledX = c.x * scaleX;
-            const scaledY = c.y * scaleY;
-
-            // Center Point
-            const cx = scaledX;
-            const cy = height - scaledY;
-
-            // Rotation Logic
-            const ox = drawWidth / 2;
-            const oy = drawHeight / 2;
+            // CSS rotation is clockwise; reuse the drawImage path's convention
+            // (rotate the offset by -rotation and draw glyphs at degrees(-rotation)).
             const rad = (-c.rotation * Math.PI) / 180;
+            const cos = Math.cos(rad), sin = Math.sin(rad);
+            const rotate = PDFLib.degrees(-c.rotation);
 
-            const rotatedOx = ox * Math.cos(rad) - oy * Math.sin(rad);
-            const rotatedOy = ox * Math.sin(rad) + oy * Math.cos(rad);
-
-            const pdfX = cx - rotatedOx;
-            const pdfY = cy - rotatedOy;
-
-            page.drawImage(pngImage, {
-                x: pdfX,
-                y: pdfY,
-                width: drawWidth,
-                height: drawHeight,
-                rotate: PDFLib.degrees(-c.rotation),
-                opacity: parseFloat(c.opacity)
+            lines.forEach((line, i) => {
+                const lineWidth = font.widthOfTextAtSize(line, fontSize);
+                // Baseline-left of this line RELATIVE to the block center (unrotated):
+                // block top is blockHeight/2 above center; within a 1.2x line box the
+                // baseline sits ~0.9em below the line-box top.
+                const rx = -lineWidth / 2;
+                const ry = blockHeight / 2 - (i * lineHeight + fontSize * 0.9);
+                // Rotate that offset around the center, then anchor the text there.
+                const x = centerX + (rx * cos - ry * sin);
+                const y = centerY + (rx * sin + ry * cos);
+                page.drawText(line, { x, y, size: fontSize, font, color, opacity, rotate });
             });
         }
-
-        // Cleanup text helper
-        document.body.removeChild(helper);
 
         // 2. Render vector drawings (highlight / pen / shapes) natively.
         for (const d of drawings) {
