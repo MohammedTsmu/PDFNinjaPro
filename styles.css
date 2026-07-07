@@ -167,10 +167,13 @@ body {
 /* Main Content Area */
 .main-content {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 30px;
-  overflow-y: auto;
+  /* NOTE: no overflow here. An overflow value would become the containing
+     scroll context for descendants' position:sticky (e.g. the Comment
+     toolbar), which then scrolls away with the page instead of pinning. */
 }
 
 /* Premium Upload Zone (2025) */
