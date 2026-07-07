@@ -1,0 +1,7 @@
+# Desktop build (Electron)
+node_modules/
+dist-desktop/
+
+# OS / editor
+.DS_Store
+Thumbs.db

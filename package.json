@@ -1,0 +1,52 @@
+{
+  "name": "pdf-ninja-pro",
+  "version": "1.6.2",
+  "description": "PDF Ninja Pro — 14+ free, private, in-browser PDF tools, now on the desktop.",
+  "author": "Mohammed Q. Sattar",
+  "license": "MIT",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --publish never"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.mohammedtsmu.pdfninjapro",
+    "productName": "PDF Ninja Pro",
+    "directories": {
+      "output": "dist-desktop"
+    },
+    "files": [
+      "electron/**",
+      "app.html",
+      "index.html",
+      "styles.css",
+      "landing.css",
+      "js/**",
+      "main.png",
+      "pages.png"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "build/icon.png",
+      "artifactName": "PDF-Ninja-Pro-${version}-${arch}-${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "artifactName": "PDF-Ninja-Pro-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "PDF-Ninja-Pro-${version}-portable.${ext}"
+    }
+  }
+}
