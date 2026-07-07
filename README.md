@@ -7,7 +7,7 @@
 **Next-Gen PDF Tools** — A modern, feature-rich web application for all your PDF needs.
 
 [![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-Visit_Now-blue?style=for-the-badge)](https://mohammedtsmu.github.io/PDFNinjaPro)
-[![Version](https://img.shields.io/badge/Version-1.6.2-orange?style=for-the-badge)](https://github.com/MohammedTsmu/PDFNinjaPro/releases)
+[![Version](https://img.shields.io/badge/Version-1.7.0-orange?style=for-the-badge)](https://github.com/MohammedTsmu/PDFNinjaPro/releases)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 [![Made with Love](https://img.shields.io/badge/Made_with-❤️-red?style=for-the-badge)](https://github.com/MohammedTsmu)
 
@@ -33,6 +33,10 @@
 | 🗜️ **Compress** | Shrink file size with a live before/after size estimate |
 | 🔤 **OCR** | Recognize text in scanned PDFs; output text or a searchable PDF |
 | 🔒 **Protect** | Password-protect (encrypt) a PDF, entirely in your browser |
+| 🔓 **Unlock** | Remove the password from a protected PDF (with the correct password) |
+| 🗑️ **Delete Pages** | Select and remove pages from a PDF |
+| 💧 **Watermark** | Stamp a diagonal text watermark across every page |
+| 🔢 **Page Numbers** | Add page numbers with position, format & start options |
 
 ---
 
