@@ -300,5 +300,8 @@ async function saveReorderedPDF() {
         alert('Error saving PDF: ' + e.message);
         btn.innerHTML = 'Error';
         btn.disabled = false;
+        setTimeout(() => {
+            btn.innerHTML = '<i class="fas fa-download"></i> Save Reordered PDF';
+        }, 2500);
     }
 }

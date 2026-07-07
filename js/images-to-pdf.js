@@ -264,5 +264,8 @@ async function createPDF() {
         alert('Error creating PDF: ' + e.message);
         btn.innerHTML = 'Error';
         btn.disabled = false;
+        setTimeout(() => {
+            btn.innerHTML = '<i class="fas fa-file-pdf"></i> Create PDF';
+        }, 2500);
     }
 }
