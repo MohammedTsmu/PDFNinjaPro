@@ -9,6 +9,10 @@
 let ocrFile = null;
 let ocrPdfDoc = null;
 let ocrResultText = '';
+let ocrCancelRequested = false;
+// Tracked so the Tesseract logger can prefix its sub-status with the page number.
+let ocrCurPage = 0;
+let ocrTotalPages = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
     const dropZone = document.getElementById('ocr-drop-zone');
@@ -44,6 +48,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (resetBtn) resetBtn.addEventListener('click', resetOcrUI);
     if (startBtn) startBtn.addEventListener('click', startOcr);
+
+    const cancelBtn = document.getElementById('ocr-cancel-btn');
+    if (cancelBtn) cancelBtn.addEventListener('click', () => {
+        ocrCancelRequested = true;
+        cancelBtn.disabled = true;
+        cancelBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cancelling…';
+    });
 
     // Show/hide text actions based on output mode.
     document.querySelectorAll('input[name="ocr-mode"]').forEach(r => {
@@ -107,6 +118,7 @@ function resetOcrUI() {
     document.getElementById('ocr-settings').classList.add('hidden');
     document.getElementById('start-ocr-btn').classList.add('hidden');
     document.getElementById('ocr-progress-container').classList.add('hidden');
+    document.getElementById('ocr-cancel-btn').classList.add('hidden');
     document.getElementById('ocr-actions').classList.add('hidden');
     document.getElementById('ocr-result').classList.add('hidden');
     document.getElementById('ocr-result').value = '';
@@ -124,6 +136,23 @@ async function renderOcrPage(pageNum, scale) {
     return canvas;
 }
 
+// Reset the UI after a user-requested cancel: hide progress/cancel, restore the
+// Start button. The worker itself is terminated by startOcr's `finally`.
+function finishOcrCancelled() {
+    if (window.hideLoader) window.hideLoader();
+    document.getElementById('ocr-progress-container').classList.add('hidden');
+    const cancelBtn = document.getElementById('ocr-cancel-btn');
+    cancelBtn.classList.add('hidden');
+    cancelBtn.disabled = false;
+    cancelBtn.innerHTML = '<i class="fas fa-stop"></i> Cancel';
+    const startBtn = document.getElementById('start-ocr-btn');
+    startBtn.disabled = false;
+    startBtn.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i> Run OCR';
+    startBtn.className = 'btn btn-primary';
+    startBtn.style.width = '100%';
+    if (window.showToast) window.showToast('OCR cancelled.', 'info');
+}
+
 async function startOcr() {
     if (!ocrPdfDoc) return;
     if (typeof Tesseract === 'undefined') {
@@ -137,11 +166,18 @@ async function startOcr() {
     const statusEl = document.getElementById('ocr-progress-status');
     const currentSpan = document.getElementById('ocr-current-page');
     const totalSpan = document.getElementById('ocr-total-pages');
+    const cancelBtn = document.getElementById('ocr-cancel-btn');
     const resultArea = document.getElementById('ocr-result');
     const actions = document.getElementById('ocr-actions');
 
     const mode = document.querySelector('input[name="ocr-mode"]:checked').value; // 'text' | 'pdf'
     const lang = document.getElementById('ocr-lang').value;
+
+    // Fresh run: clear any prior cancel request and reset the Cancel button.
+    ocrCancelRequested = false;
+    cancelBtn.disabled = false;
+    cancelBtn.innerHTML = '<i class="fas fa-stop"></i> Cancel';
+    cancelBtn.classList.remove('hidden');
 
     startBtn.disabled = true;
     startBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Running OCR...';
@@ -150,6 +186,8 @@ async function startOcr() {
     statusEl.textContent = 'Loading ' + lang + ' model…';
 
     const total = ocrPdfDoc.numPages;
+    ocrTotalPages = total;
+    ocrCurPage = 0;
     totalSpan.textContent = total;
     currentSpan.textContent = '0';
 
@@ -158,7 +196,8 @@ async function startOcr() {
         worker = await Tesseract.createWorker(lang, 1, {
             logger: (m) => {
                 if (m.status && typeof m.progress === 'number') {
-                    statusEl.textContent = m.status + ' ' + Math.round(m.progress * 100) + '%';
+                    const prefix = ocrCurPage ? ('Page ' + ocrCurPage + ' / ' + ocrTotalPages + ' · ') : '';
+                    statusEl.textContent = prefix + m.status + ' ' + Math.round(m.progress * 100) + '%';
                 }
             }
         });
@@ -169,6 +208,8 @@ async function startOcr() {
             actions.classList.remove('hidden');
             let full = '';
             for (let i = 1; i <= total; i++) {
+                if (ocrCancelRequested) { finishOcrCancelled(); return; }
+                ocrCurPage = i;
                 currentSpan.textContent = i;
                 progressFill.style.width = ((i - 1) / total * 100) + '%';
                 const canvas = await renderOcrPage(i, 2.0);
@@ -177,6 +218,7 @@ async function startOcr() {
                 resultArea.value = full;
                 resultArea.scrollTop = resultArea.scrollHeight;
             }
+            if (ocrCancelRequested) { finishOcrCancelled(); return; }
             progressFill.style.width = '100%';
             ocrResultText = full.trim();
             resultArea.value = ocrResultText || '_No text recognized._';
@@ -187,6 +229,8 @@ async function startOcr() {
             if (window.showLoader) window.showLoader('Running OCR…');
             const merged = await PDFLib.PDFDocument.create();
             for (let i = 1; i <= total; i++) {
+                if (ocrCancelRequested) { finishOcrCancelled(); return; }
+                ocrCurPage = i;
                 currentSpan.textContent = i;
                 progressFill.style.width = ((i - 1) / total * 100) + '%';
                 if (window.updateLoader) window.updateLoader('OCR page ' + i + ' of ' + total + '…');
@@ -197,6 +241,8 @@ async function startOcr() {
                 const copied = await merged.copyPages(pagePdf, pagePdf.getPageIndices());
                 copied.forEach(p => merged.addPage(p));
             }
+            // Cancelled after the last page but before saving: abort without saving.
+            if (ocrCancelRequested) { finishOcrCancelled(); return; }
             progressFill.style.width = '100%';
             const outBytes = await merged.save();
             if (window.hideLoader) window.hideLoader();
@@ -206,6 +252,7 @@ async function startOcr() {
             if (window.showToast) window.showToast('Searchable PDF ready — ' + total + ' page(s).', 'success');
         }
 
+        cancelBtn.classList.add('hidden');
         startBtn.innerHTML = '<i class="fas fa-check"></i> Done';
         startBtn.className = 'btn btn-success';
         startBtn.style.width = '100%';
@@ -219,6 +266,7 @@ async function startOcr() {
     } catch (e) {
         console.error(e);
         if (window.hideLoader) window.hideLoader();
+        cancelBtn.classList.add('hidden');
         alert('OCR error: ' + e.message);
         startBtn.disabled = false;
         startBtn.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i> Try Again';
