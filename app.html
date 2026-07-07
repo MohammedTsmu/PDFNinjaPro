@@ -207,6 +207,12 @@
                             <i class="fas fa-lock"></i> <span>Protect</span>
                         </button>
                     </li>
+                    <li class="nav-item">
+                        <button class="nav-btn" data-target="unlock" id="unlock-tab"
+                            data-tooltip="Remove a PDF password" data-tooltip-pos="right">
+                            <i class="fas fa-lock-open"></i> <span>Unlock</span>
+                        </button>
+                    </li>
                 </ul>
             </nav>
 
@@ -1190,6 +1196,55 @@
                     </button>
                 </div>
 
+                <!-- Unlock Tool (remove a PDF password) -->
+                <div id="unlock" class="tool-panel hidden">
+                    <div class="tool-header">
+                        <h3><i class="fas fa-lock-open"></i> Unlock PDF</h3>
+                        <p class="text-muted">Remove the password from a protected PDF. Enter the current password and
+                            get back a decrypted copy. Runs entirely in your browser.</p>
+                    </div>
+
+                    <div class="upload-zone" id="unlock-drop-zone">
+                        <div class="upload-icon-wrapper">
+                            <svg class="upload-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0" />
+                            </svg>
+                            <div class="upload-ripple"></div>
+                        </div>
+                        <h2 class="upload-title">Drop PDF here</h2>
+                        <input type="file" id="unlock-upload" accept="application/pdf" style="display: none;">
+                    </div>
+
+                    <div id="unlock-file-info" class="file-status-card hidden">
+                        <div class="file-icon"><i class="fas fa-file-pdf"></i></div>
+                        <div class="file-details">
+                            <div class="filename" id="unlock-filename">filename.pdf</div>
+                            <div class="meta" id="unlock-filesize">0 MB</div>
+                        </div>
+                        <button class="btn-close" id="unlock-reset-btn"><i class="fas fa-times"></i></button>
+                    </div>
+
+                    <div id="unlock-settings" class="settings-panel hidden">
+                        <div class="setting-group">
+                            <label class="setting-label" for="unlock-input">Password</label>
+                            <input type="password" id="unlock-input" class="form-control"
+                                placeholder="Enter the PDF's password" style="max-width:360px;"
+                                autocomplete="current-password">
+                        </div>
+                        <label
+                            style="display:flex; align-items:center; gap:8px; font-size:0.85rem; color:var(--text-muted); cursor:pointer;">
+                            <input type="checkbox" id="unlock-show"> Show password
+                        </label>
+                        <div id="unlock-msg" class="text-muted" style="font-size:0.85rem;"></div>
+                    </div>
+
+                    <button id="start-unlock-btn" class="btn btn-primary hidden" style="width:100%; margin-top:20px;">
+                        <i class="fas fa-lock-open"></i> Unlock PDF
+                    </button>
+                </div>
+
             </section>
 
             <!-- Shared Workspace for Single-Doc Tools (Split, Rotate, Convert, etc.) -->
@@ -1224,7 +1279,7 @@
             </div>
 
             <footer class="app-footer">
-                <p id="copyright">&copy; 2026 PDF Ninja Pro v1.6.2.</p>
+                <p id="copyright">&copy; 2026 PDF Ninja Pro v1.7.0.</p>
                 <div class="footer-links">
                     <a href="index.html">Home</a>
                     <span class="sep">·</span>
@@ -1299,6 +1354,7 @@
     <script src="js/compress.js?v=2"></script>
     <script src="js/ocr.js?v=2"></script>
     <script src="js/password.js?v=3"></script>
+    <script src="js/unlock.js?v=1"></script>
     <script src="js/merge.js"></script>
     <script src="js/convert.js?v=3"></script>
     <script src="js/extract.js?v=2"></script>
@@ -1340,7 +1396,7 @@
                     const workspace = document.getElementById('single-doc-workspace');
 
                     // Tools with their own self-contained UI (no shared workspace)
-                    const selfContainedTools = ['merge', 'rotate', 'reorder', 'background', 'images-to-pdf', 'comment', 'convert', 'extract', 'scan', 'markdown', 'compress', 'ocr', 'password'];
+                    const selfContainedTools = ['merge', 'rotate', 'reorder', 'background', 'images-to-pdf', 'comment', 'convert', 'extract', 'scan', 'markdown', 'compress', 'ocr', 'password', 'unlock'];
 
                     // Toggle Workspace (Hide for self-contained tools, Show for others)
                     if (selfContainedTools.includes(targetId)) {

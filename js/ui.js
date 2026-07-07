@@ -240,7 +240,8 @@
             markdown: 'markdown-file-info',
             compress: 'compress-file-info',
             ocr: 'ocr-file-info',
-            password: 'password-file-info'
+            password: 'password-file-info',
+            unlock: 'unlock-file-info'
         };
 
         function toolHasFile(targetId, panel) {
