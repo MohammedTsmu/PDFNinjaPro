@@ -1231,6 +1231,19 @@ body {
   z-index: 5;
 }
 
+/* Spinner shown while a comment page is lazily rendering */
+.comment-page-spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 28px;
+  line-height: 1;
+  color: rgba(0, 0, 0, 0.25);
+  z-index: 2;
+  pointer-events: none;
+}
+
 
 /* FORCE DRAG VISIBILITY */
 .comment-item.is-dragging {

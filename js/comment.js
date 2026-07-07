@@ -278,7 +278,14 @@ async function renderCommentPages() {
     nextBtn.onclick = () => scrollToPage(parseInt(pageInput.value) + 1);
     pageInput.onchange = () => scrollToPage(parseInt(pageInput.value));
 
-    // Render Pages Loop
+    workspace.innerHTML = ''; // Clear any prior render
+
+    // Build every page container + its overlay canvas up front. This pass only
+    // calls getPage() (light — parses page metadata), NOT page.render(), so the
+    // whole document gets correct scroll height and the drawing engine has all
+    // its overlays ready without the memory-heavy freeze of rasterizing every
+    // page. The actual pdf canvas is rendered lazily as pages scroll into view
+    // (see renderObserver below), mirroring the Rotate/Reorder/Background tools.
     for (let i = 1; i <= commentPdfDoc.numPages; i++) {
         const page = await commentPdfDoc.getPage(i);
         const viewport = page.getViewport({ scale: 1.0 });
@@ -286,24 +293,32 @@ async function renderCommentPages() {
         const container = document.createElement('div');
         container.className = 'comment-page-container';
         container.id = 'comment-page-' + i; // ID for scrolling
+        container.dataset.pageIndex = i;
+        container.dataset.pIndex = i; // Used by the scroll-tracking observer
 
         const wrapper = document.createElement('div');
         wrapper.className = 'comment-canvas-wrapper';
         wrapper.dataset.pageIndex = i;
         wrapper.style.width = viewport.width + 'px';
         wrapper.style.height = viewport.height + 'px';
+        wrapper.style.background = '#fff'; // Placeholder page colour until rendered
 
+        // The page canvas is sized now but painted lazily by renderCommentPage().
         const canvas = document.createElement('canvas');
         canvas.className = 'comment-page-canvas';
         canvas.width = viewport.width;
         canvas.height = viewport.height;
-
-        const context = canvas.getContext('2d');
-        await page.render({ canvasContext: context, viewport: viewport }).promise;
-
         wrapper.appendChild(canvas);
 
-        // Transparent overlay canvas for highlight / pen / shapes.
+        // Spinner shown until this page is lazily rendered.
+        const spinner = document.createElement('div');
+        spinner.className = 'comment-page-spinner';
+        spinner.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        wrapper.appendChild(spinner);
+
+        // Transparent overlay canvas for highlight / pen / shapes. Its width/height
+        // MUST equal the scale-1.0 viewport dims — saveCommentedPDF divides the
+        // page size by overlay.width to map annotations back onto the PDF.
         const overlay = document.createElement('canvas');
         overlay.className = 'comment-draw-canvas';
         overlay.width = viewport.width;
@@ -338,12 +353,21 @@ async function renderCommentPages() {
         });
     }
 
-    // Reset overlay canvases to current drawings after (re)render.
+    // Reset overlay canvases to current drawings after (re)build.
     for (let p = 1; p <= commentPdfDoc.numPages; p++) redrawOverlay(p);
 
-    // Intersection Observer to update input on scroll
-    const observer = new IntersectionObserver((entries) => {
-        // Find the most visible page
+    // Lazily paint each page's pdf canvas as it nears the viewport.
+    const renderObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                renderCommentPage(parseInt(entry.target.dataset.pageIndex, 10));
+                renderObserver.unobserve(entry.target);
+            }
+        });
+    }, { root: null, rootMargin: '300px', threshold: 0 });
+
+    // Intersection Observer to update the page input on scroll.
+    const navObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting && entry.intersectionRatio > 0.3) {
                 const index = entry.target.dataset.pIndex;
@@ -354,11 +378,37 @@ async function renderCommentPages() {
         });
     }, { threshold: [0.3] });
 
-    // Observe all page containers
-    document.querySelectorAll('.comment-page-container').forEach((el, idx) => {
-        el.dataset.pIndex = idx + 1; // Store page index
-        observer.observe(el);
+    document.querySelectorAll('.comment-page-container').forEach((el) => {
+        renderObserver.observe(el);
+        navObserver.observe(el);
     });
+}
+
+// Paint a single page's pdf canvas on demand. Idempotent per page via the
+// container's `rendered` flag (auto-reset when the workspace is rebuilt).
+async function renderCommentPage(pageIndex) {
+    const container = document.getElementById('comment-page-' + pageIndex);
+    if (!container || container.dataset.rendered === '1') return;
+    container.dataset.rendered = '1';
+
+    const canvas = container.querySelector('.comment-page-canvas');
+    if (!canvas) return;
+
+    try {
+        const page = await commentPdfDoc.getPage(pageIndex);
+        const viewport = page.getViewport({ scale: 1.0 });
+        const context = canvas.getContext('2d');
+        await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+        const spinner = container.querySelector('.comment-page-spinner');
+        if (spinner) spinner.remove();
+
+        // Re-apply any annotations that already belong to this page.
+        redrawOverlay(pageIndex);
+    } catch (e) {
+        console.error('Error rendering comment page', pageIndex, e);
+        container.dataset.rendered = ''; // Allow a retry on the next intersection
+    }
 }
 
 // --- NEW WRAPPER IMPLEMENTATION ---
