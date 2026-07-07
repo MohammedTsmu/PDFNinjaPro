@@ -247,10 +247,15 @@ async function saveBackgroundPDF() {
             const isSelected = selectedPages.some(p => p.pageIndex === i + 1);
 
             if (isSelected) {
-                // Create new page with background
+                // Create new page and draw the original content first...
                 const newPage = newPdfDoc.addPage([width, height]);
+                const embeddedPage = await newPdfDoc.embedPage(copiedPage);
+                newPage.drawPage(embeddedPage);
 
-                // Draw background rectangle
+                // ...then wash a semi-transparent color OVER it. Drawing the tint
+                // on top (not behind) is what makes it visible — PDF pages have an
+                // opaque white background that would otherwise hide a color behind
+                // them. This matches the live preview overlay.
                 newPage.drawRectangle({
                     x: 0,
                     y: 0,
@@ -263,10 +268,6 @@ async function saveBackgroundPDF() {
                     ),
                     opacity: opacity
                 });
-
-                // Embed and draw original page on top
-                const embeddedPage = await newPdfDoc.embedPage(copiedPage);
-                newPage.drawPage(embeddedPage);
             } else {
                 // Just add the page as-is
                 newPdfDoc.addPage(copiedPage);
