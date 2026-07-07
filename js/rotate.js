@@ -231,5 +231,8 @@ async function saveRotatedPDF() {
         alert('Error saving PDF: ' + e.message);
         btn.innerHTML = 'Error';
         btn.disabled = false;
+        setTimeout(() => {
+            btn.innerHTML = '<i class="fas fa-download"></i> Save Rotated PDF';
+        }, 2500);
     }
 }

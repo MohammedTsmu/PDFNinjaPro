@@ -290,5 +290,8 @@ async function saveBackgroundPDF() {
         alert('Error saving PDF: ' + e.message);
         btn.innerHTML = 'Error';
         btn.disabled = false;
+        setTimeout(() => {
+            btn.innerHTML = '<i class="fas fa-download"></i> Save PDF';
+        }, 2500);
     }
 }
