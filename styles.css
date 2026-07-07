@@ -852,7 +852,7 @@ body {
 
 .merge-filename {
   font-weight: 600;
-  color: var(--text-color);
+  color: var(--text-main);
   font-size: 1rem;
   white-space: nowrap;
   overflow: hidden;
@@ -1061,76 +1061,53 @@ body {
   justify-content: flex-end;
   align-items: center;
   gap: 15px;
+}
 
-  /* =========================================
-   File Status Card (Used in Convert/Extract/Split)
+/* =========================================
+   File Info Card details (Convert/Extract/Rotate/Reorder/Comment/Background)
+   NOTE: .file-status-card and .file-icon are already defined higher up.
+   These rules were previously trapped inside an unclosed .modal-footer
+   brace, so they never applied — now de-nested to top level.
    ========================================= */
-  .file-status-card {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    padding: 15px;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    margin-bottom: 20px;
-    animation: fadeIn 0.3s ease-out;
-  }
+.file-details {
+  flex: 1;
+  overflow: hidden;
+}
 
-  .file-icon {
-    width: 45px;
-    height: 45px;
-    background: rgba(239, 68, 68, 0.2);
-    /* Red tint */
-    color: #f87171;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-  }
+.file-details .filename {
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
-  .file-details {
-    flex: 1;
-    overflow: hidden;
-  }
+.file-details .meta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
 
-  .file-details .filename {
-    font-weight: 600;
-    color: var(--text-color);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+.action-btn-remove {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none !important;
+  background: transparent !important;
+  color: var(--text-muted) !important;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.7;
+}
 
-  .file-details .meta {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-  }
-
-
-  .action-btn-remove {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    border: none !important;
-    background: transparent !important;
-    color: var(--text-muted) !important;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    opacity: 0.7;
-  }
-
-  .action-btn-remove:hover {
-    background: rgba(239, 68, 68, 0.1) !important;
-    color: #ef4444 !important;
-    transform: scale(1.1);
-    opacity: 1;
-    box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
-  }
+.action-btn-remove:hover {
+  background: rgba(239, 68, 68, 0.1) !important;
+  color: #ef4444 !important;
+  transform: scale(1.1);
+  opacity: 1;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
 }
 
 /* Comment Tool Mobile Enhancements */
@@ -1953,6 +1930,139 @@ select {
 
     #comment-controls-group.controls-open {
         display: flex !important;
+    }
+}
+
+/* =========================================
+   Missing utility classes
+   These Bootstrap-style class names are used throughout the HTML but were
+   never defined (no Bootstrap is loaded), so buttons fell back to the
+   browser default (gray) and muted text rendered full-white. Define them
+   to match the theme.
+   ========================================= */
+.text-muted {
+    color: var(--text-muted);
+}
+
+.text-danger {
+    color: #ef4444;
+}
+
+.btn-primary {
+    background: var(--primary-gradient);
+    color: #fff;
+}
+
+.btn-primary:hover {
+    filter: brightness(1.08);
+}
+
+.btn-outline-light {
+    background: transparent;
+    color: var(--text-main);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-outline-light:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.btn-danger {
+    background: #ef4444;
+    color: #fff;
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+}
+
+/* × reset buttons in Convert/Extract/Rotate/Reorder/Background (no .btn base) */
+.btn-close {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+}
+
+.btn-close:hover {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+    transform: scale(1.05);
+}
+
+/* =========================================
+   Footer (app)
+   ========================================= */
+.app-footer {
+    border-top: 1px solid var(--glass-border);
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.app-footer .footer-links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-size: 0.85rem;
+}
+
+.app-footer .footer-links a {
+    color: var(--text-muted);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: color 0.2s ease;
+}
+
+.app-footer .footer-links a:hover {
+    color: var(--primary-color);
+}
+
+.app-footer .footer-links .sep {
+    opacity: 0.35;
+}
+
+/* =========================================
+   Accessibility
+   ========================================= */
+/* Visible keyboard-focus ring (mouse clicks stay clean via :focus-visible) */
+.btn:focus-visible,
+.nav-btn:focus-visible,
+.form-control:focus-visible,
+.btn-close:focus-visible,
+.action-btn-remove:focus-visible,
+.app-footer .footer-links a:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
     }
 }
 
