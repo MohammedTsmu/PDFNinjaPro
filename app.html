@@ -68,7 +68,8 @@
             "Add colored backgrounds to pages",
             "Convert images (JPG, PNG, GIF, WEBP) to PDF",
             "Scannify: make a PDF look like a scanned document",
-            "Convert PDF text to Markdown"
+            "Convert PDF text to Markdown",
+            "Compress PDF file size"
         ],
         "screenshot": "https://mohammedtsmu.github.io/PDFNinjaPro/pages.png",
         "author": {
@@ -184,6 +185,12 @@
                         <button class="nav-btn" data-target="markdown" id="markdown-tab"
                             data-tooltip="Convert PDF to Markdown" data-tooltip-pos="right">
                             <i class="fab fa-markdown"></i> <span>To Markdown</span>
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-btn" data-target="compress" id="compress-tab"
+                            data-tooltip="Shrink PDF file size" data-tooltip-pos="right">
+                            <i class="fas fa-file-zipper"></i> <span>Compress</span>
                         </button>
                     </li>
                 </ul>
@@ -916,6 +923,76 @@
                         style="min-height: 400px; font-family: monospace; font-size: 0.9em; line-height: 1.5; white-space: pre-wrap;"></textarea>
                 </div>
 
+                <!-- Compress Tool -->
+                <div id="compress" class="tool-panel hidden">
+                    <div class="tool-header">
+                        <h3><i class="fas fa-file-zipper"></i> Compress PDF</h3>
+                        <p class="text-muted">Shrink file size by re-encoding pages as images. Best for scanned or
+                            image-heavy PDFs. Note: text becomes part of the image (not selectable).</p>
+                    </div>
+
+                    <div class="upload-zone" id="compress-drop-zone">
+                        <div class="upload-icon-wrapper">
+                            <svg class="upload-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                            </svg>
+                            <div class="upload-ripple"></div>
+                        </div>
+                        <h2 class="upload-title">Drop PDF here</h2>
+                        <input type="file" id="compress-upload" accept="application/pdf" style="display: none;">
+                    </div>
+
+                    <div id="compress-file-info" class="file-status-card hidden">
+                        <div class="file-icon"><i class="fas fa-file-pdf"></i></div>
+                        <div class="file-details">
+                            <div class="filename" id="compress-filename">filename.pdf</div>
+                            <div class="meta" id="compress-filesize">0 MB</div>
+                        </div>
+                        <button class="btn-close" id="compress-reset-btn"><i class="fas fa-times"></i></button>
+                    </div>
+
+                    <div id="compress-settings" class="settings-panel hidden">
+                        <div class="setting-group">
+                            <label class="setting-label">Compression level</label>
+                            <div class="toggle-group">
+                                <input type="radio" name="compress-level" id="compress-low" value="low">
+                                <label for="compress-low" class="toggle-btn">Light</label>
+
+                                <input type="radio" name="compress-level" id="compress-medium" value="medium" checked>
+                                <label for="compress-medium" class="toggle-btn">Balanced</label>
+
+                                <input type="radio" name="compress-level" id="compress-high" value="high">
+                                <label for="compress-high" class="toggle-btn">Maximum</label>
+                            </div>
+                        </div>
+
+                        <div id="compress-estimate" class="text-muted"
+                            style="font-size:0.85rem; display:flex; align-items:center; gap:6px;"></div>
+                    </div>
+
+                    <button id="start-compress-btn" class="btn btn-primary hidden"
+                        style="width:100%; margin-top:20px;">
+                        <i class="fas fa-file-zipper"></i> Compress PDF
+                    </button>
+
+                    <div id="compress-progress-container" class="hidden" style="margin-top:20px;">
+                        <div
+                            style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:0.9em; color:#ccc;">
+                            <span>Compressing...</span>
+                            <span><span id="compress-current-page">0</span> / <span
+                                    id="compress-total-pages">0</span></span>
+                        </div>
+                        <div class="progress-bar"
+                            style="background:#333; height:8px; border-radius:4px; overflow:hidden;">
+                            <div class="progress-fill" id="compress-progress-fill"
+                                style="width:0%; height:100%; background:var(--primary-color); transition:width 0.1s;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </section>
 
             <!-- Shared Workspace for Single-Doc Tools (Split, Rotate, Convert, etc.) -->
@@ -950,7 +1027,7 @@
             </div>
 
             <footer class="app-footer">
-                <p id="copyright">&copy; 2026 PDF Ninja Pro v1.3.4.</p>
+                <p id="copyright">&copy; 2026 PDF Ninja Pro v1.4.0.</p>
                 <div class="footer-links">
                     <a href="index.html">Home</a>
                     <span class="sep">·</span>
@@ -1022,7 +1099,7 @@
     <script src="js/ui.js?v=1"></script>
     <script src="js/main.js?v=2"></script>
     <script src="js/split.js"></script>
-    <script src="js/compress.js"></script>
+    <script src="js/compress.js?v=2"></script>
     <script src="js/merge.js"></script>
     <script src="js/convert.js?v=3"></script>
     <script src="js/extract.js?v=2"></script>
@@ -1064,7 +1141,7 @@
                     const workspace = document.getElementById('single-doc-workspace');
 
                     // Tools with their own self-contained UI (no shared workspace)
-                    const selfContainedTools = ['merge', 'rotate', 'reorder', 'background', 'images-to-pdf', 'comment', 'convert', 'extract', 'scan', 'markdown'];
+                    const selfContainedTools = ['merge', 'rotate', 'reorder', 'background', 'images-to-pdf', 'comment', 'convert', 'extract', 'scan', 'markdown', 'compress'];
 
                     // Toggle Workspace (Hide for self-contained tools, Show for others)
                     if (selfContainedTools.includes(targetId)) {

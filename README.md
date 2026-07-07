@@ -7,7 +7,7 @@
 **Next-Gen PDF Tools** — A modern, feature-rich web application for all your PDF needs.
 
 [![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-Visit_Now-blue?style=for-the-badge)](https://mohammedtsmu.github.io/PDFNinjaPro)
-[![Version](https://img.shields.io/badge/Version-1.3.0-orange?style=for-the-badge)](https://github.com/MohammedTsmu/PDFNinjaPro/releases)
+[![Version](https://img.shields.io/badge/Version-1.4.0-orange?style=for-the-badge)](https://github.com/MohammedTsmu/PDFNinjaPro/releases)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 [![Made with Love](https://img.shields.io/badge/Made_with-❤️-red?style=for-the-badge)](https://github.com/MohammedTsmu)
 
@@ -30,6 +30,7 @@
 | 📷 **Images to PDF** | Convert JPG/PNG/GIF/WEBP to PDF |
 | 🖨️ **Scannify** | Make a clean PDF look like a real scanned document |
 | 📄 **To Markdown** | Convert PDF text to Markdown with heading detection |
+| 🗜️ **Compress** | Shrink file size with a live before/after size estimate |
 
 ---
 
@@ -117,7 +118,8 @@ PDFNinjaPro/
     ├── background.js   # Backgrounds
     ├── images-to-pdf.js # IMG to PDF
     ├── scan.js         # Scannify (scanned-look PDF)
-    └── markdown.js     # PDF to Markdown
+    ├── markdown.js     # PDF to Markdown
+    └── compress.js     # Compress (re-encode pages)
 ```
 
 ---

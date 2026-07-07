@@ -237,7 +237,8 @@
             reorder: 'reorder-file-info',
             background: 'background-file-info',
             scan: 'scan-file-info',
-            markdown: 'markdown-file-info'
+            markdown: 'markdown-file-info',
+            compress: 'compress-file-info'
         };
 
         function toolHasFile(targetId, panel) {
