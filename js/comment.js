@@ -12,6 +12,19 @@ let dragStartY = 0;
 let dragStartLeft = 0;
 let dragStartTop = 0;
 
+// --- Annotation (drawing) state ---
+let commentMode = 'text'; // text | highlight | pen | rect | ellipse | arrow
+let drawings = [];        // { id, type, pageIndex, color, thickness, opacity, x1,y1,x2,y2, points[] }
+let historyStack = [];    // { kind:'text'|'draw', id } — for undo
+const pageOverlays = {};  // pageIndex -> overlay canvas
+let isDrawing = false;
+let drawStart = null;     // {x,y} in overlay-canvas coords
+let drawCtxPage = null;   // pageIndex being drawn on
+let currentPenPts = null; // points for pen mode
+
+const DRAW_MODES = ['highlight', 'pen', 'rect', 'ellipse', 'arrow'];
+function uid() { return Date.now() + '-' + Math.random().toString(36).slice(2); }
+
 document.addEventListener('DOMContentLoaded', () => {
     const dropZone = document.getElementById('comment-drop-zone');
     const fileInput = document.getElementById('comment-upload');
@@ -44,6 +57,50 @@ document.addEventListener('DOMContentLoaded', () => {
     // Global Drag Listeners
     window.addEventListener('mousemove', handleGlobalDragMove);
     window.addEventListener('mouseup', handleGlobalDragEnd);
+
+    // Global Drawing Listeners
+    window.addEventListener('mousemove', handleDrawMove);
+    window.addEventListener('mouseup', handleDrawEnd);
+
+    // Tool-mode switching
+    const hint = document.getElementById('comment-hint');
+    const thicknessGroup = document.getElementById('comment-thickness-group');
+    const HINTS = {
+        text: 'Click anywhere to type…',
+        highlight: 'Drag across text to highlight',
+        pen: 'Draw freehand on the page',
+        rect: 'Drag to draw a rectangle',
+        ellipse: 'Drag to draw an ellipse',
+        arrow: 'Drag to draw an arrow'
+    };
+    document.querySelectorAll('.comment-mode-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            commentMode = btn.dataset.mode;
+            document.querySelectorAll('.comment-mode-btn').forEach(b => b.classList.toggle('active', b === btn));
+            if (hint) hint.textContent = HINTS[commentMode] || '';
+            // Thickness only matters for drawing modes.
+            if (thicknessGroup) thicknessGroup.style.opacity = (commentMode === 'text' || commentMode === 'highlight') ? '0.5' : '1';
+            // Drawing modes: the workspace shows a crosshair.
+            const ws = document.getElementById('comment-workspace');
+            if (ws) ws.style.cursor = DRAW_MODES.includes(commentMode) ? 'crosshair' : '';
+        });
+    });
+
+    const undoBtn = document.getElementById('comment-undo-btn');
+    const clearBtn = document.getElementById('comment-clear-btn');
+    if (undoBtn) undoBtn.addEventListener('click', undoLast);
+    if (clearBtn) clearBtn.addEventListener('click', clearAllAnnotations);
+
+    // Undo shortcut (only while the Comment tool is active and not typing)
+    window.addEventListener('keydown', (e) => {
+        const commentPanel = document.getElementById('comment');
+        if (!commentPanel || commentPanel.classList.contains('hidden')) return;
+        if (document.activeElement && document.activeElement.isContentEditable) return;
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+            e.preventDefault();
+            undoLast();
+        }
+    });
 
     // UI Helpers: Reset Logic
     const bindReset = (triggerId, inputId, defaultVal, displayId = null, displaySuffix = '') => {
@@ -125,6 +182,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Show/Hide Ghost on Canvas
     // Use event delegation for performance
     document.addEventListener('mousemove', (e) => {
+        // Only the Text tool uses the "type here" ghost.
+        if (commentMode !== 'text') { ghost.style.display = 'none'; return; }
         // Hide if typing (contentEditable focused)
         if (document.activeElement && document.activeElement.isContentEditable) {
             ghost.style.display = 'none';
@@ -152,6 +211,9 @@ document.addEventListener('DOMContentLoaded', () => {
 async function handleCommentFile(file) {
     commentFile = file;
     comments = []; // Reset comments
+    drawings = [];
+    historyStack = [];
+    for (const k in pageOverlays) delete pageOverlays[k];
 
     document.getElementById('comment-drop-zone').classList.add('hidden');
     document.getElementById('comment-file-info').classList.remove('hidden');
@@ -176,8 +238,10 @@ function resetCommentUI() {
     commentFile = null;
     commentPdfDoc = null;
     comments = [];
+    drawings = [];
+    historyStack = [];
+    for (const k in pageOverlays) delete pageOverlays[k];
     document.getElementById('comment-workspace').innerHTML = '';
-    document.getElementById('comment-sidebar').innerHTML = '<div style="font-size:12px; font-weight:bold; margin-bottom:5px; opacity:0.7;">Go to Page:</div>';
 
     document.getElementById('comment-drop-zone').classList.remove('hidden');
     document.getElementById('comment-file-info').classList.add('hidden');
@@ -238,14 +302,44 @@ async function renderCommentPages() {
         await page.render({ canvasContext: context, viewport: viewport }).promise;
 
         wrapper.appendChild(canvas);
+
+        // Transparent overlay canvas for highlight / pen / shapes.
+        const overlay = document.createElement('canvas');
+        overlay.className = 'comment-draw-canvas';
+        overlay.width = viewport.width;
+        overlay.height = viewport.height;
+        overlay.style.position = 'absolute';
+        overlay.style.left = '0';
+        overlay.style.top = '0';
+        overlay.style.pointerEvents = 'none';
+        wrapper.appendChild(overlay);
+        pageOverlays[i] = overlay;
+
         container.appendChild(wrapper);
         workspace.appendChild(container);
 
+        // Text mode: click to add a text comment.
         wrapper.addEventListener('click', (e) => {
+            if (commentMode !== 'text') return;
             if (draggingCommentId || e.target.closest('.comment-overlay')) return;
             addComment(i, e.offsetX, e.offsetY, wrapper, viewport.width, viewport.height);
         });
+
+        // Drawing modes: press to start a shape/stroke on this page.
+        wrapper.addEventListener('mousedown', (e) => {
+            if (!DRAW_MODES.includes(commentMode)) return;
+            if (e.target.closest('.comment-overlay')) return; // don't start over a text comment
+            const rect = overlay.getBoundingClientRect();
+            drawStart = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+            drawCtxPage = i;
+            isDrawing = true;
+            currentPenPts = commentMode === 'pen' ? [{ x: drawStart.x, y: drawStart.y }] : null;
+            e.preventDefault();
+        });
     }
+
+    // Reset overlay canvases to current drawings after (re)render.
+    for (let p = 1; p <= commentPdfDoc.numPages; p++) redrawOverlay(p);
 
     // Intersection Observer to update input on scroll
     const observer = new IntersectionObserver((entries) => {
@@ -443,6 +537,7 @@ function addComment(pageIndex, x, y, wrapper, canvasWidth, canvasHeight) {
         textElement: textDiv, // Reference Text
         canvasWidth, canvasHeight
     });
+    historyStack.push({ kind: 'text', id });
 
     // Immediately Focus to Type
     setTimeout(() => {
@@ -503,6 +598,145 @@ function removeComment(id) {
         comments[idx].element.remove();
         comments.splice(idx, 1);
     }
+    historyStack = historyStack.filter(h => h.id !== id);
+}
+
+// ---------- Drawing engine (highlight / pen / shapes) ----------
+
+function handleDrawMove(e) {
+    if (!isDrawing || drawCtxPage == null) return;
+    const overlay = pageOverlays[drawCtxPage];
+    if (!overlay) return;
+    const rect = overlay.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    if (commentMode === 'pen') currentPenPts.push({ x, y });
+    redrawOverlay(drawCtxPage, { x, y });
+}
+
+function handleDrawEnd(e) {
+    if (!isDrawing || drawCtxPage == null) return;
+    const overlay = pageOverlays[drawCtxPage];
+    const rect = overlay.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    commitDrawing(drawCtxPage, x, y);
+    isDrawing = false;
+    drawStart = null;
+    currentPenPts = null;
+    const page = drawCtxPage;
+    drawCtxPage = null;
+    redrawOverlay(page);
+}
+
+function commitDrawing(pageIndex, endX, endY) {
+    const color = document.getElementById('comment-color').value;
+    const thickness = parseInt(document.getElementById('comment-thickness').value, 10) || 3;
+
+    if (commentMode === 'pen') {
+        if (!currentPenPts || currentPenPts.length < 2) return;
+        drawings.push({ id: uid(), type: 'pen', pageIndex, color, thickness, opacity: 1, points: currentPenPts.slice() });
+    } else {
+        // Ignore tiny click-only gestures.
+        if (Math.abs(endX - drawStart.x) < 3 && Math.abs(endY - drawStart.y) < 3) return;
+        drawings.push({
+            id: uid(), type: commentMode, pageIndex, color, thickness,
+            opacity: commentMode === 'highlight' ? 0.35 : 1,
+            x1: drawStart.x, y1: drawStart.y, x2: endX, y2: endY
+        });
+    }
+    historyStack.push({ kind: 'draw', id: drawings[drawings.length - 1].id });
+}
+
+function drawAnnotation(ctx, d) {
+    ctx.save();
+    ctx.globalAlpha = d.opacity != null ? d.opacity : 1;
+    ctx.strokeStyle = d.color;
+    ctx.fillStyle = d.color;
+    ctx.lineWidth = d.thickness || 3;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+
+    if (d.type === 'highlight') {
+        ctx.fillRect(Math.min(d.x1, d.x2), Math.min(d.y1, d.y2), Math.abs(d.x2 - d.x1), Math.abs(d.y2 - d.y1));
+    } else if (d.type === 'rect') {
+        ctx.strokeRect(Math.min(d.x1, d.x2), Math.min(d.y1, d.y2), Math.abs(d.x2 - d.x1), Math.abs(d.y2 - d.y1));
+    } else if (d.type === 'ellipse') {
+        const cx = (d.x1 + d.x2) / 2, cy = (d.y1 + d.y2) / 2;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, Math.abs(d.x2 - d.x1) / 2, Math.abs(d.y2 - d.y1) / 2, 0, 0, Math.PI * 2);
+        ctx.stroke();
+    } else if (d.type === 'arrow') {
+        drawArrow(ctx, d.x1, d.y1, d.x2, d.y2, d.thickness || 3);
+    } else if (d.type === 'pen') {
+        ctx.beginPath();
+        d.points.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+        ctx.stroke();
+    }
+    ctx.restore();
+}
+
+function drawArrow(ctx, x1, y1, x2, y2, thickness) {
+    const head = Math.max(8, thickness * 3);
+    const ang = Math.atan2(y2 - y1, x2 - x1);
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - head * Math.cos(ang - Math.PI / 6), y2 - head * Math.sin(ang - Math.PI / 6));
+    ctx.lineTo(x2 - head * Math.cos(ang + Math.PI / 6), y2 - head * Math.sin(ang + Math.PI / 6));
+    ctx.closePath();
+    ctx.fill();
+}
+
+function redrawOverlay(pageIndex, preview) {
+    const overlay = pageOverlays[pageIndex];
+    if (!overlay) return;
+    const ctx = overlay.getContext('2d');
+    ctx.clearRect(0, 0, overlay.width, overlay.height);
+    drawings.filter(d => d.pageIndex === pageIndex).forEach(d => drawAnnotation(ctx, d));
+
+    // In-progress preview.
+    if (preview && isDrawing && drawStart) {
+        const color = document.getElementById('comment-color').value;
+        const thickness = parseInt(document.getElementById('comment-thickness').value, 10) || 3;
+        if (commentMode === 'pen') {
+            drawAnnotation(ctx, { type: 'pen', color, thickness, opacity: 1, points: currentPenPts });
+        } else {
+            drawAnnotation(ctx, {
+                type: commentMode, color, thickness,
+                opacity: commentMode === 'highlight' ? 0.35 : 1,
+                x1: drawStart.x, y1: drawStart.y, x2: preview.x, y2: preview.y
+            });
+        }
+    }
+}
+
+function undoLast() {
+    const last = historyStack.pop();
+    if (!last) return;
+    if (last.kind === 'text') {
+        removeComment(last.id);
+    } else {
+        const idx = drawings.findIndex(d => d.id === last.id);
+        if (idx !== -1) {
+            const page = drawings[idx].pageIndex;
+            drawings.splice(idx, 1);
+            redrawOverlay(page);
+        }
+    }
+}
+
+function clearAllAnnotations() {
+    if (!comments.length && !drawings.length) return;
+    if (!confirm('Remove all annotations on this document?')) return;
+    comments.slice().forEach(c => removeComment(c.id));
+    const pages = [...new Set(drawings.map(d => d.pageIndex))];
+    drawings = [];
+    pages.forEach(redrawOverlay);
+    historyStack = [];
 }
 
 async function saveCommentedPDF() {
@@ -602,8 +836,54 @@ async function saveCommentedPDF() {
             });
         }
 
-        // Cleanup
+        // Cleanup text helper
         document.body.removeChild(helper);
+
+        // 2. Render vector drawings (highlight / pen / shapes) natively.
+        for (const d of drawings) {
+            const page = pages[d.pageIndex - 1];
+            const { width: pw, height: ph } = page.getSize();
+            const overlay = pageOverlays[d.pageIndex];
+            const cw = overlay ? overlay.width : pw;
+            const chh = overlay ? overlay.height : ph;
+            const sx = pw / cw, sy = ph / chh;
+            const rgb = hexToRgb(d.color);
+            const col = PDFLib.rgb(rgb.r / 255, rgb.g / 255, rgb.b / 255);
+            const th = (d.thickness || 3) * sx;
+            const toPdf = (x, y) => ({ x: x * sx, y: ph - y * sy });
+
+            if (d.type === 'highlight') {
+                page.drawRectangle({
+                    x: Math.min(d.x1, d.x2) * sx, y: ph - Math.max(d.y1, d.y2) * sy,
+                    width: Math.abs(d.x2 - d.x1) * sx, height: Math.abs(d.y2 - d.y1) * sy,
+                    color: col, opacity: 0.35
+                });
+            } else if (d.type === 'rect') {
+                page.drawRectangle({
+                    x: Math.min(d.x1, d.x2) * sx, y: ph - Math.max(d.y1, d.y2) * sy,
+                    width: Math.abs(d.x2 - d.x1) * sx, height: Math.abs(d.y2 - d.y1) * sy,
+                    borderColor: col, borderWidth: th
+                });
+            } else if (d.type === 'ellipse') {
+                const cx = (d.x1 + d.x2) / 2, cy = (d.y1 + d.y2) / 2;
+                page.drawEllipse({
+                    x: cx * sx, y: ph - cy * sy,
+                    xScale: Math.abs(d.x2 - d.x1) / 2 * sx, yScale: Math.abs(d.y2 - d.y1) / 2 * sy,
+                    borderColor: col, borderWidth: th
+                });
+            } else if (d.type === 'arrow') {
+                const start = toPdf(d.x1, d.y1), end = toPdf(d.x2, d.y2);
+                page.drawLine({ start, end, thickness: th, color: col });
+                const head = Math.max(8, (d.thickness || 3) * 3) * sx;
+                const ang = Math.atan2(end.y - start.y, end.x - start.x);
+                page.drawLine({ start: end, end: { x: end.x - head * Math.cos(ang - Math.PI / 6), y: end.y - head * Math.sin(ang - Math.PI / 6) }, thickness: th, color: col });
+                page.drawLine({ start: end, end: { x: end.x - head * Math.cos(ang + Math.PI / 6), y: end.y - head * Math.sin(ang + Math.PI / 6) }, thickness: th, color: col });
+            } else if (d.type === 'pen') {
+                for (let i = 1; i < d.points.length; i++) {
+                    page.drawLine({ start: toPdf(d.points[i - 1].x, d.points[i - 1].y), end: toPdf(d.points[i].x, d.points[i].y), thickness: th, color: col });
+                }
+            }
+        }
 
         const pdfBytes = await pdfDoc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });

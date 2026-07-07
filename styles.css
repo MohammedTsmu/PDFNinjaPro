@@ -1195,6 +1195,39 @@ body {
   /* I-Beam over pages */
 }
 
+/* Comment tool: annotation mode buttons */
+.comment-mode-btn {
+  width: 34px;
+  height: 30px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  transition: all 0.15s ease;
+}
+
+.comment-mode-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-main);
+}
+
+.comment-mode-btn.active {
+  background: var(--primary-gradient);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+}
+
+/* Comment tool: drawing overlay sits above the page canvas */
+.comment-draw-canvas {
+  z-index: 5;
+}
+
 
 /* FORCE DRAG VISIBILITY */
 .comment-item.is-dragging {
