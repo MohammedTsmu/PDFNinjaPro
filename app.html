@@ -66,7 +66,9 @@
             "Reorder PDF pages with drag and drop",
             "Add text comments and annotations",
             "Add colored backgrounds to pages",
-            "Convert images (JPG, PNG, GIF, WEBP) to PDF"
+            "Convert images (JPG, PNG, GIF, WEBP) to PDF",
+            "Scannify: make a PDF look like a scanned document",
+            "Convert PDF text to Markdown"
         ],
         "screenshot": "https://mohammedtsmu.github.io/PDFNinjaPro/pages.png",
         "author": {
@@ -82,7 +84,7 @@
     }
     </script>
 
-    <link rel="stylesheet" href="styles.css?v=19">
+    <link rel="stylesheet" href="styles.css?v=20">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <!-- Favicon - PDF Ninja Shuriken -->
@@ -170,6 +172,18 @@
                         <button class="nav-btn" data-target="images-to-pdf" id="images-to-pdf-tab"
                             data-tooltip="Convert images to PDF" data-tooltip-pos="right">
                             <i class="fas fa-images"></i> <span>Images to PDF</span>
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-btn" data-target="scan" id="scan-tab"
+                            data-tooltip="Make a PDF look scanned" data-tooltip-pos="right">
+                            <i class="fas fa-print"></i> <span>Scannify</span>
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-btn" data-target="markdown" id="markdown-tab"
+                            data-tooltip="Convert PDF to Markdown" data-tooltip-pos="right">
+                            <i class="fab fa-markdown"></i> <span>To Markdown</span>
                         </button>
                     </li>
                 </ul>
@@ -766,6 +780,129 @@
                     <div id="img2pdf-grid" class="page-grid hidden" style="margin-top:20px;"></div>
                 </div>
 
+                <!-- Scannify Tool (PDF -> Scanned-looking PDF) -->
+                <div id="scan" class="tool-panel hidden">
+                    <div class="tool-header">
+                        <h3><i class="fas fa-print"></i> Scannify PDF</h3>
+                        <p class="text-muted">Make a clean digital PDF look like a real scanned document.</p>
+                    </div>
+
+                    <div class="upload-zone" id="scan-drop-zone">
+                        <div class="upload-icon-wrapper">
+                            <svg class="upload-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                            </svg>
+                            <div class="upload-ripple"></div>
+                        </div>
+                        <h2 class="upload-title">Drop PDF here</h2>
+                        <input type="file" id="scan-upload" accept="application/pdf" style="display: none;">
+                    </div>
+
+                    <div id="scan-file-info" class="file-status-card hidden">
+                        <div class="file-icon"><i class="fas fa-file-pdf"></i></div>
+                        <div class="file-details">
+                            <div class="filename" id="scan-filename">filename.pdf</div>
+                            <div class="meta" id="scan-filesize">0 MB</div>
+                        </div>
+                        <button class="btn-close" id="scan-reset-btn"><i class="fas fa-times"></i></button>
+                    </div>
+
+                    <div id="scan-settings" class="settings-panel hidden">
+                        <div class="setting-group">
+                            <label class="setting-label">Color mode</label>
+                            <div class="toggle-group">
+                                <input type="radio" name="scan-color" id="scan-gray" value="gray" checked>
+                                <label for="scan-gray" class="toggle-btn">Grayscale</label>
+
+                                <input type="radio" name="scan-color" id="scan-colour" value="color">
+                                <label for="scan-colour" class="toggle-btn">Color</label>
+                            </div>
+                        </div>
+
+                        <div class="setting-group">
+                            <div class="setting-header">
+                                <label class="setting-label">Scan intensity</label>
+                                <span class="setting-value" id="scan-intensity-val">Medium</span>
+                            </div>
+                            <input type="range" id="scan-intensity" class="slider" min="0" max="100" step="10"
+                                value="50">
+                            <span class="text-muted" style="font-size:0.8rem;">Controls page skew, paper texture and
+                                noise.</span>
+                        </div>
+                    </div>
+
+                    <button id="start-scan-btn" class="btn btn-primary hidden" style="width:100%; margin-top:20px;">
+                        <i class="fas fa-print"></i> Create Scanned PDF
+                    </button>
+
+                    <div id="scan-progress-container" class="hidden" style="margin-top:20px;">
+                        <div
+                            style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:0.9em; color:#ccc;">
+                            <span>Scanning...</span>
+                            <span><span id="scan-current-page">0</span> / <span id="scan-total-pages">0</span></span>
+                        </div>
+                        <div class="progress-bar"
+                            style="background:#333; height:8px; border-radius:4px; overflow:hidden;">
+                            <div class="progress-fill" id="scan-progress-fill"
+                                style="width:0%; height:100%; background:var(--primary-color); transition:width 0.1s;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Markdown Tool (PDF -> Markdown) -->
+                <div id="markdown" class="tool-panel hidden">
+                    <div class="tool-header">
+                        <h3><i class="fab fa-markdown"></i> PDF to Markdown</h3>
+                        <p class="text-muted">Convert your PDF's text into clean Markdown, with headings detected
+                            automatically.</p>
+                    </div>
+
+                    <div class="upload-zone" id="markdown-drop-zone">
+                        <div class="upload-icon-wrapper">
+                            <svg class="upload-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <div class="upload-ripple"></div>
+                        </div>
+                        <h2 class="upload-title">Drop PDF here</h2>
+                        <input type="file" id="markdown-upload" accept="application/pdf" style="display: none;">
+                    </div>
+
+                    <div id="markdown-file-info" class="file-status-card hidden">
+                        <div class="file-icon"><i class="fas fa-file-pdf"></i></div>
+                        <div class="file-details">
+                            <div class="filename" id="markdown-filename">filename.pdf</div>
+                            <div class="meta" id="markdown-filesize">0 MB</div>
+                        </div>
+                        <button class="btn-close" id="markdown-reset-btn"><i class="fas fa-times"></i></button>
+                    </div>
+
+                    <div id="markdown-actions" class="hidden"
+                        style="margin-top: 20px; display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <span class="text-muted" id="markdown-status">Ready to convert</span>
+                        <div style="display:flex; gap:10px;">
+                            <button id="markdown-copy-btn" class="btn btn-sm btn-outline-light"><i
+                                    class="fas fa-copy"></i> Copy</button>
+                            <button id="markdown-download-btn" class="btn btn-sm btn-outline-light"><i
+                                    class="fas fa-download"></i> Save .md</button>
+                        </div>
+                    </div>
+
+                    <button id="start-markdown-btn" class="btn btn-primary hidden"
+                        style="width:100%; margin-bottom:20px;">
+                        <i class="fab fa-markdown"></i> Convert to Markdown
+                    </button>
+
+                    <textarea id="markdown-result" class="form-control hidden" readonly
+                        placeholder="Markdown output will appear here..."
+                        style="min-height: 400px; font-family: monospace; font-size: 0.9em; line-height: 1.5; white-space: pre-wrap;"></textarea>
+                </div>
+
             </section>
 
             <!-- Shared Workspace for Single-Doc Tools (Split, Rotate, Convert, etc.) -->
@@ -800,7 +937,7 @@
             </div>
 
             <footer class="app-footer">
-                <p id="copyright">&copy; 2026 PDF Ninja Pro v1.2.2.</p>
+                <p id="copyright">&copy; 2026 PDF Ninja Pro v1.3.0.</p>
                 <div class="footer-links">
                     <a href="index.html">Home</a>
                     <span class="sep">·</span>
@@ -881,6 +1018,8 @@
     <script src="js/reorder.js"></script>
     <script src="js/background.js"></script>
     <script src="js/images-to-pdf.js"></script>
+    <script src="js/scan.js?v=1"></script>
+    <script src="js/markdown.js?v=1"></script>
     <script src="js/copyright.js"></script>
 
     <!-- UI Interaction Script (Tab Switching) -->
@@ -912,7 +1051,7 @@
                     const workspace = document.getElementById('single-doc-workspace');
 
                     // Tools with their own self-contained UI (no shared workspace)
-                    const selfContainedTools = ['merge', 'rotate', 'reorder', 'background', 'images-to-pdf', 'comment', 'convert', 'extract'];
+                    const selfContainedTools = ['merge', 'rotate', 'reorder', 'background', 'images-to-pdf', 'comment', 'convert', 'extract', 'scan', 'markdown'];
 
                     // Toggle Workspace (Hide for self-contained tools, Show for others)
                     if (selfContainedTools.includes(targetId)) {
