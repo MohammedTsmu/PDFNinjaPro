@@ -238,7 +238,9 @@
             background: 'background-file-info',
             scan: 'scan-file-info',
             markdown: 'markdown-file-info',
-            compress: 'compress-file-info'
+            compress: 'compress-file-info',
+            ocr: 'ocr-file-info',
+            password: 'password-file-info'
         };
 
         function toolHasFile(targetId, panel) {
