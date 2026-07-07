@@ -41,9 +41,38 @@ document.addEventListener('DOMContentLoaded', () => {
     if (opacityInput && opacityValue) {
         opacityInput.addEventListener('input', () => {
             opacityValue.textContent = Math.round(opacityInput.value * 100) + '%';
+            updateBackgroundPreview();
         });
     }
+
+    // Color picker -> refresh live tint
+    const colorInput = document.getElementById('background-color');
+    if (colorInput) colorInput.addEventListener('input', updateBackgroundPreview);
 });
+
+// Show a live tint on the selected page thumbnails, matching the color + opacity
+// that will be applied on save. Only selected pages are tinted, so the preview
+// also shows which pages will be affected.
+function tintOverlayFor(pageData) {
+    const wrap = pageData.element && pageData.element.querySelector('.canvas-wrapper');
+    if (!wrap) return;
+    let ov = wrap.querySelector('.bg-tint-overlay');
+    if (pageData.selected) {
+        if (!ov) {
+            ov = document.createElement('div');
+            ov.className = 'bg-tint-overlay';
+            wrap.appendChild(ov);
+        }
+        ov.style.background = document.getElementById('background-color').value;
+        ov.style.opacity = parseFloat(document.getElementById('background-opacity').value);
+    } else if (ov) {
+        ov.remove();
+    }
+}
+
+function updateBackgroundPreview() {
+    backgroundPages.forEach(tintOverlayFor);
+}
 
 async function handleBackgroundFile(file) {
     backgroundFile = file;
@@ -126,6 +155,7 @@ async function renderBackgroundGrid() {
         card.addEventListener('click', () => {
             pageData.selected = !pageData.selected;
             card.classList.toggle('selected', pageData.selected);
+            tintOverlayFor(pageData);
         });
     }
 
@@ -173,6 +203,7 @@ async function renderSinglePage(pageIndex) {
         canvasWrapper.appendChild(canvas);
         card.classList.remove('loading');
         pageData.rendered = true;
+        tintOverlayFor(pageData); // re-apply tint if this page is selected
     } catch (e) {
         console.error('Error rendering page', pageIndex, e);
     }
@@ -183,6 +214,7 @@ function selectAllPages() {
     backgroundPages.forEach(p => {
         p.selected = !allSelected;
         p.element.classList.toggle('selected', p.selected);
+        tintOverlayFor(p);
     });
 }
 

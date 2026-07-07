@@ -3,6 +3,8 @@
 
 let convertFile = null;
 let convertPdfDoc = null;
+let convertPreviewCanvas = null; // cached page-1 render for size estimates
+let convertEstimateTimer = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     const dropZone = document.getElementById('convert-drop-zone');
@@ -22,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (val <= 0.6) text = "Medium (0.6)";
             if (val <= 0.5) text = "Low (0.5)";
             qualityVal.textContent = text;
+            scheduleConvertEstimate();
         });
     }
 
@@ -39,6 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     qualityGroup.style.opacity = '1';
                     qualityGroup.style.pointerEvents = 'auto';
                 }
+                updateConvertEstimate();
             });
         });
     }
@@ -94,7 +98,16 @@ async function handleConvertFile(file) {
     try {
         const arrayBuffer = await file.arrayBuffer();
         convertPdfDoc = await pdfjsLib.getDocument(arrayBuffer).promise;
-        // Could enable page range selection here
+
+        // Render page 1 once (at the same scale used for export) to estimate size.
+        const page = await convertPdfDoc.getPage(1);
+        const viewport = page.getViewport({ scale: 2.0 });
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+        convertPreviewCanvas = canvas;
+        updateConvertEstimate();
     } catch (e) {
         console.error(e);
         alert("Invalid PDF file.");
@@ -102,9 +115,40 @@ async function handleConvertFile(file) {
     }
 }
 
+function fmtBytes(b) {
+    if (b < 1024) return b + ' B';
+    if (b < 1048576) return (b / 1024).toFixed(0) + ' KB';
+    return (b / 1048576).toFixed(1) + ' MB';
+}
+
+function scheduleConvertEstimate() {
+    clearTimeout(convertEstimateTimer);
+    convertEstimateTimer = setTimeout(updateConvertEstimate, 180);
+}
+
+async function updateConvertEstimate() {
+    const est = document.getElementById('convert-estimate');
+    if (!est || !convertPreviewCanvas || !convertPdfDoc) return;
+    try {
+        const format = document.querySelector('input[name="img-fmt"]:checked').value;
+        const quality = parseFloat(document.getElementById('img-quality').value);
+        const mime = format === 'png' ? 'image/png' : 'image/jpeg';
+        const blob = await new Promise(r => convertPreviewCanvas.toBlob(r, mime, quality));
+        const per = blob.size;
+        const total = per * convertPdfDoc.numPages;
+        est.innerHTML = '<i class="fas fa-database"></i> Estimated ~' + fmtBytes(total) +
+            ' total &middot; ' + convertPdfDoc.numPages + ' pages &times; ~' + fmtBytes(per) + '/page';
+    } catch (e) {
+        console.error('Estimate error:', e);
+    }
+}
+
 function resetConvertUI() {
     convertFile = null;
     convertPdfDoc = null;
+    convertPreviewCanvas = null;
+    const est = document.getElementById('convert-estimate');
+    if (est) est.textContent = '';
 
     document.getElementById('convert-drop-zone').classList.remove('hidden');
     document.getElementById('convert-file-info').classList.add('hidden');
