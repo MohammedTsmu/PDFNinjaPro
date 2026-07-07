@@ -74,7 +74,9 @@ async function handleMarkdownFile(file) {
 
     try {
         const arrayBuffer = await file.arrayBuffer();
-        mdPdfDoc = await pdfjsLib.getDocument(arrayBuffer).promise;
+        const loaded = await window.loadPdfProtected(arrayBuffer);
+        if (!loaded) { resetMarkdownUI(); return; } // password prompt cancelled
+        mdPdfDoc = loaded.pdfDoc;
     } catch (e) {
         console.error(e);
         alert('Invalid PDF file.');

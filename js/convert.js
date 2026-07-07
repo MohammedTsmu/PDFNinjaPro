@@ -97,7 +97,9 @@ async function handleConvertFile(file) {
     // Load PDF Document to get page count (optional, but good for range input later)
     try {
         const arrayBuffer = await file.arrayBuffer();
-        convertPdfDoc = await pdfjsLib.getDocument(arrayBuffer).promise;
+        const loaded = await window.loadPdfProtected(arrayBuffer);
+        if (!loaded) { resetConvertUI(); return; } // password prompt cancelled
+        convertPdfDoc = loaded.pdfDoc;
 
         // Render page 1 once (at the same scale used for export) to estimate size.
         const page = await convertPdfDoc.getPage(1);

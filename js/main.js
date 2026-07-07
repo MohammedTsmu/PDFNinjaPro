@@ -86,14 +86,24 @@ document.addEventListener('DOMContentLoaded', function () {
             // Read ArrayBuffer
             const arrayBuffer = await file.arrayBuffer();
 
-            // Load PDF Document
-            const loadingTask = pdfjsLib.getDocument({
-                data: arrayBuffer,
+            // Load PDF Document (prompts for a password if the PDF is protected).
+            const loaded = await window.loadPdfProtected(arrayBuffer, {
                 cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
                 cMapPacked: true
             });
 
-            pdfDocGlobal = await loadingTask.promise;
+            if (!loaded) {
+                // User cancelled the password prompt — return to the upload screen.
+                spinner.classList.add('hidden');
+                if (statusCard) statusCard.classList.add('hidden');
+                document.querySelector('.upload-content').classList.remove('hidden');
+                return;
+            }
+
+            pdfDocGlobal = loaded.pdfDoc;
+            // split.js loads with pdf-lib for saving; hand it decrypted bytes so
+            // protected PDFs work there too.
+            window.pdfBytesDecrypted = loaded.bytes;
 
             // --- RESTORE CHAPTER LOGIC ---
             // split.js needs these globals to work

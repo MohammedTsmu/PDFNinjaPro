@@ -2,6 +2,7 @@
 
 let backgroundFile = null;
 let backgroundPdfDoc = null;
+let backgroundBytes = null; // decrypted bytes for pdf-lib save (handles protected PDFs)
 let backgroundPages = []; // { pageIndex, selected, element }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -88,7 +89,10 @@ async function handleBackgroundFile(file) {
 
     try {
         const arrayBuffer = await file.arrayBuffer();
-        backgroundPdfDoc = await pdfjsLib.getDocument(arrayBuffer).promise;
+        const loaded = await window.loadPdfProtected(arrayBuffer);
+        if (!loaded) { resetBackgroundUI(); return; } // password prompt cancelled
+        backgroundPdfDoc = loaded.pdfDoc;
+        backgroundBytes = loaded.bytes;
         renderBackgroundGrid();
     } catch (e) {
         console.error(e);
@@ -100,6 +104,7 @@ async function handleBackgroundFile(file) {
 function resetBackgroundUI() {
     backgroundFile = null;
     backgroundPdfDoc = null;
+    backgroundBytes = null;
     backgroundPages = [];
     document.getElementById('background-grid').innerHTML = '';
 
@@ -235,8 +240,7 @@ async function saveBackgroundPDF() {
         const backgroundColor = document.getElementById('background-color').value;
         const opacity = parseFloat(document.getElementById('background-opacity').value);
 
-        const arrayBuffer = await backgroundFile.arrayBuffer();
-        const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+        const pdfDoc = await PDFLib.PDFDocument.load(backgroundBytes, { ignoreEncryption: true });
         const newPdfDoc = await PDFLib.PDFDocument.create();
 
         // Copy all pages, apply background to selected ones

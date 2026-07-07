@@ -81,6 +81,53 @@
         font-size: 1.2rem; line-height: 1; cursor: pointer; padding: 0 2px;
     }
     .shared-doc-banner .sdb-dismiss:hover { color: #fff; }
+
+    /* ---------- Password prompt modal ---------- */
+    #pdf-pw-overlay {
+        position: fixed; inset: 0; z-index: 100001; display: none;
+        align-items: center; justify-content: center;
+        background: rgba(2, 6, 23, 0.72); backdrop-filter: blur(6px);
+    }
+    #pdf-pw-overlay.active { display: flex; }
+    .pdf-pw-card {
+        width: min(400px, calc(100vw - 40px)); box-sizing: border-box;
+        background: #0f172a; color: #f8fafc;
+        border: 1px solid rgba(255,255,255,0.12); border-radius: 16px;
+        box-shadow: 0 24px 64px rgba(0,0,0,0.55); padding: 24px;
+        animation: pwIn .25s ease;
+    }
+    @keyframes pwIn { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
+    .pdf-pw-card .pdf-pw-icon {
+        width: 48px; height: 48px; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(59,130,246,0.15); color: var(--primary-color, #3b82f6);
+        font-size: 1.4rem; margin-bottom: 14px;
+    }
+    .pdf-pw-card h3 { margin: 0 0 6px; font-size: 1.1rem; font-weight: 700; }
+    .pdf-pw-card p { margin: 0 0 16px; font-size: 0.9rem; color: #cbd5e1; line-height: 1.4; }
+    .pdf-pw-input-wrap { position: relative; margin-bottom: 8px; }
+    .pdf-pw-card input {
+        width: 100%; box-sizing: border-box; padding: 12px 42px 12px 14px;
+        border-radius: 10px; border: 1px solid rgba(255,255,255,0.18);
+        background: rgba(255,255,255,0.06); color: #f8fafc; font-size: 0.95rem;
+    }
+    .pdf-pw-card input:focus { outline: none; border-color: var(--primary-color, #3b82f6); }
+    .pdf-pw-toggle {
+        position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+        background: none; border: none; color: rgba(255,255,255,0.55);
+        cursor: pointer; padding: 6px; font-size: 0.95rem;
+    }
+    .pdf-pw-toggle:hover { color: #fff; }
+    .pdf-pw-error { min-height: 18px; font-size: 0.8rem; color: #f43f5e; margin-bottom: 12px; }
+    .pdf-pw-actions { display: flex; gap: 10px; justify-content: flex-end; }
+    .pdf-pw-actions button {
+        padding: 10px 16px; border-radius: 10px; font-weight: 600; cursor: pointer;
+        border: 1px solid transparent; font-size: 0.9rem;
+    }
+    .pdf-pw-cancel { background: rgba(255,255,255,0.08); color: #e2e8f0; }
+    .pdf-pw-cancel:hover { background: rgba(255,255,255,0.15); }
+    .pdf-pw-unlock { background: var(--primary-color, #3b82f6); color: #fff; }
+    .pdf-pw-unlock:hover { filter: brightness(1.1); }
     `;
     document.head.appendChild(style);
 
@@ -160,6 +207,154 @@
     window.showLoader = showLoader;
     window.updateLoader = updateLoader;
     window.hideLoader = hideLoader;
+
+    /* ---------- @cantoo/pdf-lib loader (decrypts; app's pdf-lib cannot) ---------- */
+    // Loaded on demand and captured into its own reference so window.PDFLib — the
+    // app's stock pdf-lib — is left untouched. Shared with js/password.js.
+    let _cantooLib = null;
+    function getCantoo() {
+        if (_cantooLib) return Promise.resolve(_cantooLib);
+        const orig = window.PDFLib;
+        return new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = 'https://cdn.jsdelivr.net/npm/@cantoo/pdf-lib/dist/pdf-lib.min.js';
+            s.onload = () => {
+                _cantooLib = window.PDFLib;
+                window.PDFLib = orig; // restore the app's original pdf-lib
+                resolve(_cantooLib);
+            };
+            s.onerror = () => {
+                window.PDFLib = orig;
+                reject(new Error('Failed to load the decryption library (check your connection).'));
+            };
+            document.head.appendChild(s);
+        });
+    }
+    window.getCantoo = getCantoo;
+
+    /* ---------- Password prompt modal ---------- */
+    // Resolves to the entered password, or null if the user cancels.
+    function promptPdfPassword(message, isRetry) {
+        return new Promise((resolve) => {
+            let overlay = document.getElementById('pdf-pw-overlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'pdf-pw-overlay';
+                overlay.innerHTML =
+                    '<div class="pdf-pw-card" role="dialog" aria-modal="true" aria-label="Password required">' +
+                    '<div class="pdf-pw-icon"><i class="fas fa-lock"></i></div>' +
+                    '<h3>Password required</h3>' +
+                    '<p class="pdf-pw-msg"></p>' +
+                    '<div class="pdf-pw-input-wrap">' +
+                    '<input type="password" class="pdf-pw-field" autocomplete="off" placeholder="Enter password" />' +
+                    '<button class="pdf-pw-toggle" type="button" aria-label="Show password"><i class="fas fa-eye"></i></button>' +
+                    '</div>' +
+                    '<div class="pdf-pw-error" role="alert"></div>' +
+                    '<div class="pdf-pw-actions">' +
+                    '<button class="pdf-pw-cancel" type="button">Cancel</button>' +
+                    '<button class="pdf-pw-unlock" type="button">Unlock</button>' +
+                    '</div></div>';
+                document.body.appendChild(overlay);
+            }
+
+            const field = overlay.querySelector('.pdf-pw-field');
+            const errEl = overlay.querySelector('.pdf-pw-error');
+            const toggle = overlay.querySelector('.pdf-pw-toggle');
+            const cancelBtn = overlay.querySelector('.pdf-pw-cancel');
+            const unlockBtn = overlay.querySelector('.pdf-pw-unlock');
+
+            overlay.querySelector('.pdf-pw-msg').textContent = message ||
+                'This PDF is password-protected. Enter its password to open it.';
+            errEl.textContent = isRetry ? 'Incorrect password — please try again.' : '';
+            field.value = '';
+            field.type = 'password';
+            toggle.innerHTML = '<i class="fas fa-eye"></i>';
+
+            overlay.classList.add('active');
+            setTimeout(() => field.focus(), 30);
+
+            function cleanup() {
+                overlay.classList.remove('active');
+                toggle.removeEventListener('click', onToggle);
+                cancelBtn.removeEventListener('click', onCancel);
+                unlockBtn.removeEventListener('click', onUnlock);
+                field.removeEventListener('keydown', onKey);
+                overlay.removeEventListener('mousedown', onBackdrop);
+            }
+            function onToggle() {
+                const hidden = field.type === 'password';
+                field.type = hidden ? 'text' : 'password';
+                toggle.innerHTML = hidden ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+                field.focus();
+            }
+            function onCancel() { cleanup(); resolve(null); }
+            function onUnlock() {
+                const val = field.value;
+                if (!val) { errEl.textContent = 'Please enter a password.'; field.focus(); return; }
+                cleanup(); resolve(val);
+            }
+            function onKey(e) {
+                if (e.key === 'Enter') { e.preventDefault(); onUnlock(); }
+                else if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
+            }
+            function onBackdrop(e) { if (e.target === overlay) onCancel(); }
+
+            toggle.addEventListener('click', onToggle);
+            cancelBtn.addEventListener('click', onCancel);
+            unlockBtn.addEventListener('click', onUnlock);
+            field.addEventListener('keydown', onKey);
+            overlay.addEventListener('mousedown', onBackdrop);
+        });
+    }
+    window.promptPdfPassword = promptPdfPassword;
+
+    /* ---------- Unified protected-PDF loader ----------
+       Opens a PDF with pdf.js, prompting for a password when the file is
+       encrypted (looping until correct or cancelled). Returns:
+         { pdfDoc, password, bytes }
+       where `bytes` are DECRYPTED bytes safe to hand to pdf-lib for saving
+       (pdf-lib cannot decrypt, so encrypted input is re-saved via
+       @cantoo/pdf-lib). Non-encrypted input passes straight through. Returns
+       null if the user cancels the prompt; throws for genuinely invalid files. */
+    async function loadPdfProtected(input, extraParams) {
+        // Keep a pristine master copy; pdf.js may detach whatever buffer we pass it.
+        const master = input instanceof Uint8Array ? input.slice() : new Uint8Array(input).slice();
+        const PwR = (window.pdfjsLib && pdfjsLib.PasswordResponses) ||
+            { NEED_PASSWORD: 1, INCORRECT_PASSWORD: 2 };
+
+        let password = null;
+        let attempted = false;
+        let pdfDoc = null;
+
+        while (true) {
+            const params = Object.assign({ data: master.slice() }, extraParams || {});
+            if (password != null) params.password = password;
+            try {
+                pdfDoc = await pdfjsLib.getDocument(params).promise;
+                break;
+            } catch (err) {
+                const isPw = err && (err.name === 'PasswordException' ||
+                    err.code === PwR.NEED_PASSWORD || err.code === PwR.INCORRECT_PASSWORD);
+                if (!isPw) throw err; // genuinely corrupt/invalid file
+                password = await promptPdfPassword(
+                    attempted ? 'That password was incorrect. Please try again.'
+                        : 'This PDF is password-protected. Enter its password to open it.',
+                    attempted);
+                attempted = true;
+                if (password == null) return null; // user cancelled
+            }
+        }
+
+        let bytes = master;
+        if (password != null) {
+            // pdf-lib can't decrypt — re-save via @cantoo/pdf-lib to get plaintext bytes.
+            const Cantoo = await getCantoo();
+            const dec = await Cantoo.PDFDocument.load(master.slice(), { password });
+            bytes = await dec.save();
+        }
+        return { pdfDoc, password, bytes };
+    }
+    window.loadPdfProtected = loadPdfProtected;
 
     /* ---------- Global drag-drop routing ---------- */
     // Drop a file anywhere and it is routed to the currently-active tool's file input.

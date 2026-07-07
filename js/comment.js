@@ -3,6 +3,7 @@
 
 let commentFile = null;
 let commentPdfDoc = null;
+let commentBytes = null; // decrypted bytes for pdf-lib save (handles protected PDFs)
 let comments = []; // { id, pageIndex, x, y, text, color, size, fontName, opacity, rotation, element, canvasWidth, canvasHeight }
 
 // Global Drag State
@@ -225,7 +226,10 @@ async function handleCommentFile(file) {
 
     try {
         const arrayBuffer = await file.arrayBuffer();
-        commentPdfDoc = await pdfjsLib.getDocument(arrayBuffer).promise;
+        const loaded = await window.loadPdfProtected(arrayBuffer);
+        if (!loaded) { resetCommentUI(); return; } // password prompt cancelled
+        commentPdfDoc = loaded.pdfDoc;
+        commentBytes = loaded.bytes;
         renderCommentPages();
     } catch (e) {
         console.error(e);
@@ -237,6 +241,7 @@ async function handleCommentFile(file) {
 function resetCommentUI() {
     commentFile = null;
     commentPdfDoc = null;
+    commentBytes = null;
     comments = [];
     drawings = [];
     historyStack = [];
@@ -747,8 +752,7 @@ async function saveCommentedPDF() {
     btn.disabled = true;
 
     try {
-        const arrayBuffer = await commentFile.arrayBuffer();
-        const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+        const pdfDoc = await PDFLib.PDFDocument.load(commentBytes, { ignoreEncryption: true });
         const pages = pdfDoc.getPages();
 
         // 1. Create a Hidden Helper Container for Snapshotting

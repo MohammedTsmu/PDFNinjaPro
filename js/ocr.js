@@ -89,7 +89,9 @@ async function handleOcrFile(file) {
 
     try {
         const arrayBuffer = await file.arrayBuffer();
-        ocrPdfDoc = await pdfjsLib.getDocument(arrayBuffer).promise;
+        const loaded = await window.loadPdfProtected(arrayBuffer);
+        if (!loaded) { resetOcrUI(); return; } // password prompt cancelled
+        ocrPdfDoc = loaded.pdfDoc;
     } catch (e) {
         console.error(e);
         alert('Invalid PDF file.');
