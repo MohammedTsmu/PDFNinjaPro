@@ -243,7 +243,8 @@
             ocr: 'ocr-file-info',
             password: 'password-file-info',
             unlock: 'unlock-file-info',
-            watermark: 'watermark-file-info'
+            watermark: 'watermark-file-info',
+            pagenum: 'pagenum-file-info'
         };
 
         function toolHasFile(targetId, panel) {

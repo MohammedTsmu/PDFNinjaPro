@@ -225,6 +225,12 @@
                             <i class="fas fa-stamp"></i> <span>Watermark</span>
                         </button>
                     </li>
+                    <li class="nav-item">
+                        <button class="nav-btn" data-target="pagenum" id="pagenum-tab"
+                            data-tooltip="Add page numbers" data-tooltip-pos="right">
+                            <i class="fas fa-list-ol"></i> <span>Page Numbers</span>
+                        </button>
+                    </li>
                 </ul>
             </nav>
 
@@ -1413,6 +1419,100 @@
                     </button>
                 </div>
 
+                <!-- Page Numbers Tool (stamp page numbers onto each page) -->
+                <div id="pagenum" class="tool-panel hidden">
+                    <div class="tool-header">
+                        <h3><i class="fas fa-list-ol"></i> Add Page Numbers</h3>
+                        <p class="text-muted">Stamp a page number onto every page. Choose the position, format and
+                            style &mdash; everything runs in your browser.</p>
+                    </div>
+
+                    <div class="upload-zone" id="pagenum-drop-zone">
+                        <div class="upload-icon-wrapper">
+                            <svg class="upload-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 6h16M4 12h16M4 18h7" />
+                            </svg>
+                            <div class="upload-ripple"></div>
+                        </div>
+                        <h2 class="upload-title">Drop PDF here</h2>
+                        <input type="file" id="pagenum-upload" accept="application/pdf" style="display: none;">
+                    </div>
+
+                    <div id="pagenum-file-info" class="file-status-card hidden">
+                        <div class="file-icon"><i class="fas fa-file-pdf"></i></div>
+                        <div class="file-details">
+                            <div class="filename" id="pagenum-filename">filename.pdf</div>
+                            <div class="meta" id="pagenum-filesize">0 MB</div>
+                        </div>
+                        <button class="btn-close" id="pagenum-reset-btn"><i class="fas fa-times"></i></button>
+                    </div>
+
+                    <div id="pagenum-settings" class="settings-panel hidden">
+                        <div class="setting-group">
+                            <label class="setting-label">Position</label>
+                            <div class="toggle-group">
+                                <input type="radio" name="pagenum-position" id="pagenum-pos-bl" value="bottom-left">
+                                <label for="pagenum-pos-bl" class="toggle-btn">Bottom left</label>
+
+                                <input type="radio" name="pagenum-position" id="pagenum-pos-bc" value="bottom-center"
+                                    checked>
+                                <label for="pagenum-pos-bc" class="toggle-btn">Bottom center</label>
+
+                                <input type="radio" name="pagenum-position" id="pagenum-pos-br" value="bottom-right">
+                                <label for="pagenum-pos-br" class="toggle-btn">Bottom right</label>
+
+                                <input type="radio" name="pagenum-position" id="pagenum-pos-tl" value="top-left">
+                                <label for="pagenum-pos-tl" class="toggle-btn">Top left</label>
+
+                                <input type="radio" name="pagenum-position" id="pagenum-pos-tc" value="top-center">
+                                <label for="pagenum-pos-tc" class="toggle-btn">Top center</label>
+
+                                <input type="radio" name="pagenum-position" id="pagenum-pos-tr" value="top-right">
+                                <label for="pagenum-pos-tr" class="toggle-btn">Top right</label>
+                            </div>
+                        </div>
+
+                        <div class="setting-group">
+                            <label class="setting-label" for="pagenum-format">Format</label>
+                            <select id="pagenum-format" class="form-control" style="max-width:240px;">
+                                <option value="plain" selected>1</option>
+                                <option value="page">Page 1</option>
+                                <option value="slash">1 / N</option>
+                            </select>
+                        </div>
+
+                        <div class="setting-group">
+                            <label class="setting-label" for="pagenum-start">Start number</label>
+                            <input type="number" id="pagenum-start" class="form-control" value="1" min="0" step="1"
+                                style="max-width:140px;">
+                        </div>
+
+                        <div class="setting-group">
+                            <label class="setting-label" for="pagenum-size">Font size</label>
+                            <input type="number" id="pagenum-size" class="form-control" value="11" min="4" max="72"
+                                step="1" style="max-width:140px;">
+                        </div>
+
+                        <div class="setting-group">
+                            <label class="setting-label" for="pagenum-color">Color</label>
+                            <input type="color" id="pagenum-color" class="form-control" value="#000000"
+                                style="max-width:80px; height:42px; padding:4px;">
+                        </div>
+
+                        <div class="setting-group">
+                            <label class="setting-label" for="pagenum-margin">Margin (pt)</label>
+                            <input type="number" id="pagenum-margin" class="form-control" value="24" min="0" max="200"
+                                step="1" style="max-width:140px;">
+                        </div>
+                    </div>
+
+                    <button id="start-pagenum-btn" class="btn btn-primary hidden" style="width:100%; margin-top:20px;">
+                        <i class="fas fa-download"></i> Add Numbers &amp; Save
+                    </button>
+                </div>
+
             </section>
 
             <!-- Shared Workspace for Single-Doc Tools (Split, Rotate, Convert, etc.) -->
@@ -1534,6 +1634,7 @@
     <script src="js/images-to-pdf.js?v=1"></script>
     <script src="js/scan.js?v=2"></script>
     <script src="js/watermark.js?v=1"></script>
+    <script src="js/pagenum.js?v=1"></script>
     <script src="js/markdown.js?v=1"></script>
     <script src="js/copyright.js?v=1.6.2"></script>
 
@@ -1566,7 +1667,7 @@
                     const workspace = document.getElementById('single-doc-workspace');
 
                     // Tools with their own self-contained UI (no shared workspace)
-                    const selfContainedTools = ['merge', 'rotate', 'reorder', 'background', 'delete', 'images-to-pdf', 'comment', 'convert', 'extract', 'scan', 'markdown', 'compress', 'ocr', 'password', 'unlock', 'watermark'];
+                    const selfContainedTools = ['merge', 'rotate', 'reorder', 'background', 'delete', 'images-to-pdf', 'comment', 'convert', 'extract', 'scan', 'markdown', 'compress', 'ocr', 'password', 'unlock', 'watermark', 'pagenum'];
 
                     // Toggle Workspace (Hide for self-contained tools, Show for others)
                     if (selfContainedTools.includes(targetId)) {
