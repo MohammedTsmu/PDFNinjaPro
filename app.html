@@ -82,7 +82,7 @@
     }
     </script>
 
-    <link rel="stylesheet" href="styles.css?v=16">
+    <link rel="stylesheet" href="styles.css?v=17">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <!-- Favicon - PDF Ninja Shuriken -->
@@ -94,7 +94,7 @@
 <body>
     <div class="app-container">
         <!-- Mobile Menu Toggle -->
-        <button id="mobile-menu-toggle" class="mobile-menu-btn">
+        <button id="mobile-menu-toggle" class="mobile-menu-btn" aria-label="Toggle menu" aria-expanded="false">
             <i class="fas fa-bars"></i>
         </button>
 
@@ -176,7 +176,8 @@
             </nav>
 
             <!-- Collapse Toggle (Desktop) -->
-            <button id="sidebar-collapse-btn" class="sidebar-collapse-btn" title="Collapse Menu">
+            <button id="sidebar-collapse-btn" class="sidebar-collapse-btn" title="Collapse Menu"
+                aria-label="Collapse menu">
                 <i class="fas fa-chevron-left"></i>
             </button>
         </aside>
@@ -421,7 +422,12 @@
                             Click anywhere to type...
                         </div>
 
-                        <div style="display:flex; gap:10px; align-items:center;">
+                        <button id="comment-options-toggle" class="btn btn-sm btn-secondary" aria-expanded="false"
+                            aria-controls="comment-controls-group" style="display:none;">
+                            <i class="fas fa-sliders-h"></i> Options
+                        </button>
+
+                        <div id="comment-controls-group" style="display:flex; gap:10px; align-items:center;">
                             <!-- Color -->
                             <div style="display:flex; flex-direction:column; align-items:center; width:50px;">
                                 <label id="lbl-color" style="font-size:10px; margin:0; opacity:0.8; cursor:pointer;"
@@ -773,6 +779,7 @@
                     <button id="sel-inverse" class="btn btn-sm btn-dark">Inverse</button>
                     <button id="sel-odd" class="btn btn-sm btn-dark">Odd</button>
                     <button id="sel-even" class="btn btn-sm btn-dark">Even</button>
+                    <span id="selection-count" class="selection-count" style="margin-left:auto; font-size:0.85rem; color:var(--accent-color); font-weight:600;">0 selected</span>
                 </div>
 
                 <!-- Preview Area -->
@@ -784,16 +791,16 @@
             <!-- Scroll Buttons (Hidden initially) -->
             <div id="scroll-buttons"
                 style="position: fixed; bottom: 30px; right: 30px; display: none; flex-direction: column; gap: 10px; z-index: 200;">
-                <button id="scroll-top-btn" class="btn"
+                <button id="scroll-top-btn" class="btn" aria-label="Scroll to top" title="Scroll to top"
                     style="background: var(--primary-color); color: white; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3);"><i
                         class="fas fa-arrow-up"></i></button>
-                <button id="scroll-bottom-btn" class="btn"
+                <button id="scroll-bottom-btn" class="btn" aria-label="Scroll to bottom" title="Scroll to bottom"
                     style="background: var(--primary-color); color: white; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3);"><i
                         class="fas fa-arrow-down"></i></button>
             </div>
 
             <footer class="app-footer">
-                <p id="copyright">&copy; 2025 PDF Ninja Pro v1.1.4.</p>
+                <p id="copyright">&copy; 2026 PDF Ninja Pro v1.2.0.</p>
             </footer>
         </main>
     </div>
@@ -854,7 +861,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <!-- App Scripts -->
-    <script src="js/main.js"></script>
+    <script src="js/ui.js?v=1"></script>
+    <script src="js/main.js?v=2"></script>
     <script src="js/split.js"></script>
     <script src="js/compress.js"></script>
     <script src="js/merge.js"></script>
@@ -881,11 +889,18 @@
             navButtons.forEach(btn => {
                 btn.addEventListener('click', () => {
                     // 1. Sidebar Buttons
-                    navButtons.forEach(b => b.classList.remove('active'));
+                    navButtons.forEach(b => {
+                        b.classList.remove('active');
+                        b.removeAttribute('aria-current');
+                    });
                     btn.classList.add('active');
+                    btn.setAttribute('aria-current', 'page');
 
                     // 2. Panels Visibility
                     const targetId = btn.getAttribute('data-target');
+
+                    // Remember the active tool across reloads
+                    try { localStorage.setItem('activeTool', targetId); } catch (e) { }
                     const workspace = document.getElementById('single-doc-workspace');
 
                     // Tools with their own self-contained UI (no shared workspace)
@@ -909,6 +924,28 @@
                     });
                 });
             });
+
+            // Restore last-used tool (default: Split)
+            try {
+                const saved = localStorage.getItem('activeTool');
+                if (saved && saved !== 'split') {
+                    const savedBtn = document.querySelector('.nav-btn[data-target="' + saved + '"]');
+                    if (savedBtn) savedBtn.click();
+                } else {
+                    const splitBtn = document.getElementById('split-tab');
+                    if (splitBtn) splitBtn.setAttribute('aria-current', 'page');
+                }
+            } catch (e) { }
+
+            // Comment tool: collapse secondary controls behind an "Options" toggle on mobile
+            const optToggle = document.getElementById('comment-options-toggle');
+            const optGroup = document.getElementById('comment-controls-group');
+            if (optToggle && optGroup) {
+                optToggle.addEventListener('click', () => {
+                    const open = optGroup.classList.toggle('controls-open');
+                    optToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+                });
+            }
         });
 
         // Mobile Menu Toggle
@@ -929,11 +966,9 @@
 
                 // Toggle icon
                 const icon = menuBtn.querySelector('i');
-                if (sidebar.classList.contains('open')) {
-                    icon.className = 'fas fa-times';
-                } else {
-                    icon.className = 'fas fa-bars';
-                }
+                const isOpen = sidebar.classList.contains('open');
+                icon.className = isOpen ? 'fas fa-times' : 'fas fa-bars';
+                menuBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
             });
 
             // Close on overlay click

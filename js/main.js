@@ -4,6 +4,7 @@
 window.selectedPages = new Set();
 let pdfDocGlobal = null;
 let renderSessionId = 0; // Cancellation Token
+let lastClickedPage = null; // Anchor for Shift+click range selection
 
 document.addEventListener('DOMContentLoaded', function () {
     // UI Elements
@@ -57,6 +58,7 @@ document.addEventListener('DOMContentLoaded', function () {
     async function startLoading(file) {
         // UI Reset
         console.log('Starting direct load for:', file.name);
+        window.__lastPdf = file; // Share this doc with other tools
 
         // New Render Session
         renderSessionId++;
@@ -150,7 +152,7 @@ document.addEventListener('DOMContentLoaded', function () {
             pageContainer.className = 'page-container loading';
             pageContainer.dataset.pageNumber = i;
             pageContainer.innerHTML = '<div class="skeleton-spinner"></div><div class="page-number">' + i + '</div>';
-            pageContainer.onclick = () => toggleSelect(i, pageContainer);
+            pageContainer.onclick = (e) => toggleSelect(i, pageContainer, e);
             container.appendChild(pageContainer);
         }
 
@@ -221,6 +223,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 dlBtn.className = 'quick-split-btn';
                 dlBtn.innerHTML = '<i class="fas fa-download"></i>';
                 dlBtn.title = 'Extract this page';
+                dlBtn.setAttribute('aria-label', 'Extract page ' + pageNum);
                 dlBtn.onclick = (e) => {
                     e.stopPropagation();
                     if (window.extractSinglePage) window.extractSinglePage(pageNum);
@@ -243,14 +246,18 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // 4. Selection Logic
-    function toggleSelect(i, el) {
-        if (window.selectedPages.has(i)) {
+    function toggleSelect(i, el, event) {
+        // Shift+click selects the whole range from the last clicked page.
+        if (event && event.shiftKey && lastClickedPage !== null) {
+            const min = Math.min(lastClickedPage, i);
+            const max = Math.max(lastClickedPage, i);
+            for (let p = min; p <= max; p++) window.selectedPages.add(p);
+        } else if (window.selectedPages.has(i)) {
             window.selectedPages.delete(i);
-            el.classList.remove('selected');
         } else {
             window.selectedPages.add(i);
-            el.classList.add('selected');
         }
+        lastClickedPage = i;
         updateSelectionUI();
     }
 
@@ -289,6 +296,15 @@ document.addEventListener('DOMContentLoaded', function () {
         updateSelectionUI();
     });
 
+    function updateSelectionCount() {
+        const countEl = document.getElementById('selection-count');
+        if (countEl) {
+            const n = window.selectedPages.size;
+            countEl.textContent = n === 1 ? '1 selected' : n + ' selected';
+        }
+    }
+    window.updateSelectionCount = updateSelectionCount;
+
     function updateSelectionUI() {
         window.updateSelectionUI = updateSelectionUI; // Expose for other modules
         // Visual Update
@@ -297,6 +313,8 @@ document.addEventListener('DOMContentLoaded', function () {
             if (window.selectedPages.has(num)) container.classList.add('selected');
             else container.classList.remove('selected');
         });
+
+        updateSelectionCount();
 
         // Input Update
         const rangesInput = document.getElementById('page-ranges');
@@ -348,8 +366,33 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (selectedPages.has(num)) container.classList.add('selected');
                 else container.classList.remove('selected');
             });
+            updateSelectionCount();
         });
     }
+
+    // Keyboard shortcuts for the page grid (Split workspace)
+    document.addEventListener('keydown', function (e) {
+        const workspace = document.getElementById('single-doc-workspace');
+        const workspaceActive = workspace && !workspace.classList.contains('hidden');
+        if (!pdfDocGlobal || !workspaceActive) return;
+
+        // Don't hijack typing in inputs/textareas/selects
+        const tag = (document.activeElement && document.activeElement.tagName) || '';
+        if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag)) return;
+
+        // Ctrl/Cmd+A → select all pages
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'a' || e.key === 'A')) {
+            e.preventDefault();
+            for (let i = 1; i <= pdfDocGlobal.numPages; i++) window.selectedPages.add(i);
+            updateSelectionUI();
+        }
+        // Escape → clear selection
+        else if (e.key === 'Escape') {
+            window.selectedPages.clear();
+            lastClickedPage = null;
+            updateSelectionUI();
+        }
+    });
 
     // Scroll Buttons
     document.getElementById('scroll-top-btn').addEventListener('click', () => {

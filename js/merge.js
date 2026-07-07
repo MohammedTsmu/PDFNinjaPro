@@ -493,6 +493,7 @@ mergeBtn?.addEventListener('click', async function () {
 
     mergeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Merging...';
     mergeBtn.disabled = true;
+    if (window.showLoader) window.showLoader('Merging ' + mergeState.length + ' files…');
 
     // Reset Download Link
     const mergeDownloadLink = document.getElementById('merge-download-link');
@@ -504,7 +505,10 @@ mergeBtn?.addEventListener('click', async function () {
     try {
         const pdfLibDoc = await PDFLib.PDFDocument.create();
 
+        let mergeIdx = 0;
         for (const item of mergeState) {
+            mergeIdx++;
+            if (window.updateLoader) window.updateLoader('Adding file ' + mergeIdx + ' of ' + mergeState.length + '…');
             const arrayBuffer = await item.file.arrayBuffer();
             const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
             const totalPages = pdfDoc.getPageCount();
@@ -549,9 +553,12 @@ mergeBtn?.addEventListener('click', async function () {
             });
         }
 
+        if (window.updateLoader) window.updateLoader('Finalizing merged PDF…');
         const pdfBytes = await pdfLibDoc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
+        if (window.hideLoader) window.hideLoader();
+        if (window.showToast) window.showToast('Merged ' + mergeState.length + ' files successfully.', 'success');
 
         const mergeDownloadLink = document.getElementById('merge-download-link');
         mergeDownloadLink.href = url;
@@ -569,6 +576,7 @@ mergeBtn?.addEventListener('click', async function () {
 
     } catch (e) {
         console.error(e);
+        if (window.hideLoader) window.hideLoader();
         alert('Merge error. Check console and page ranges.');
         mergeBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error';
         setTimeout(() => {

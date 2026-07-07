@@ -1947,3 +1947,23 @@ select {
     border-top-color: var(--accent-color);
 }
 
+/* Mobile: collapse the dense comment toolbar controls behind an Options toggle */
+@media (max-width: 768px) {
+    #comment-options-toggle {
+        display: inline-flex !important;
+        align-items: center;
+        gap: 6px;
+    }
+
+    #comment-controls-group {
+        display: none !important;
+        flex-basis: 100%;
+        flex-wrap: wrap;
+        margin-top: 10px;
+    }
+
+    #comment-controls-group.controls-open {
+        display: flex !important;
+    }
+}
+

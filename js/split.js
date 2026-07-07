@@ -258,6 +258,7 @@ document.getElementById('split-btn').addEventListener('click', async function ()
         const fileReader = new FileReader();
         fileReader.onload = async function () {
             const splitBtn = document.getElementById('split-btn');
+            if (window.showLoader) window.showLoader('Splitting your PDF…');
             try {
             const typedarray = new Uint8Array(this.result);
             const pdfDoc = await PDFLib.PDFDocument.load(typedarray, { ignoreEncryption: true });
@@ -315,8 +316,13 @@ document.getElementById('split-btn').addEventListener('click', async function ()
 
             if (finalPageIndices.length === 0) {
                 alert('Please select pages in the preview or enter a valid page range.');
+                if (window.hideLoader) window.hideLoader();
+                splitBtn.innerHTML = '<i class="fas fa-cut"></i> Split PDF';
+                splitBtn.disabled = false;
                 return;
             }
+
+            if (window.updateLoader) window.updateLoader('Extracting ' + finalPageIndices.length + ' page(s)…');
 
             // Copy selected pages
             const pagesToCopy = await pdfLibDoc.copyPages(pdfDoc, finalPageIndices);
@@ -342,14 +348,18 @@ document.getElementById('split-btn').addEventListener('click', async function ()
                 splitBtn.innerHTML = '<i class="fas fa-cut"></i> Split PDF';
             }, 2000);
 
+            if (window.hideLoader) window.hideLoader();
+
             const notification = document.getElementById('notification');
             notification.innerHTML = `PDF split successfully! Contains ${finalPageIndices.length} pages.`;
             notification.classList.remove('hidden');
             setTimeout(() => notification.classList.add('hidden'), 5000);
+            if (window.showToast) window.showToast('Split complete — ' + finalPageIndices.length + ' page(s) ready to download.', 'success');
 
             console.log('PDF split complete.');
             } catch (e) {
                 console.error('Split error:', e);
+                if (window.hideLoader) window.hideLoader();
                 alert('Error splitting PDF: ' + e.message);
                 splitBtn.innerHTML = '<i class="fas fa-cut"></i> Split PDF';
                 splitBtn.disabled = false;
