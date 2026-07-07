@@ -105,11 +105,23 @@ body {
   -webkit-text-fill-color: transparent;
 }
 
+/* The nav list scrolls within the sidebar when there are more items than fit,
+   so the logo and collapse button stay pinned and every tool stays reachable. */
+.sidebar nav {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin-right: -8px;
+  padding-right: 8px;
+}
+
 .nav-menu {
   list-style: none;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  padding-bottom: 4px;
 }
 
 .nav-item {
