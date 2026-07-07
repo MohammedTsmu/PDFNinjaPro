@@ -112,7 +112,7 @@ async function extractLines(page) {
         const size = Math.hypot(t[2], t[3]) || it.height || 10;
         let line = rawLines.find(l => Math.abs(l.y - y) <= Math.max(2, size * 0.4));
         if (!line) { line = { y, size, parts: [] }; rawLines.push(line); }
-        line.parts.push({ x, str: it.str, w: it.width || 0 });
+        line.parts.push({ x, str: it.str, w: it.width || 0, font: it.fontName || '' });
         line.size = Math.max(line.size, size);
     });
 
@@ -123,6 +123,7 @@ async function extractLines(page) {
         l.parts.sort((a, b) => a.x - b.x);
         let text = '';
         let prevEnd = null;
+        const fontFreq = {};
         l.parts.forEach(p => {
             if (prevEnd !== null && (p.x - prevEnd) > l.size * 0.25 &&
                 !text.endsWith(' ') && !p.str.startsWith(' ')) {
@@ -130,8 +131,12 @@ async function extractLines(page) {
             }
             text += p.str;
             prevEnd = p.x + p.w;
+            if (p.font) fontFreq[p.font] = (fontFreq[p.font] || 0) + p.str.length;
         });
-        return { text: text.replace(/\s+/g, ' ').trim(), size: l.size, y: l.y };
+        // Dominant font of the line (used to spot headings that are bold but
+        // not larger than body text — they use a different font).
+        const font = Object.keys(fontFreq).sort((a, b) => fontFreq[b] - fontFreq[a])[0] || '';
+        return { text: text.replace(/\s+/g, ' ').trim(), size: l.size, y: l.y, font };
     }).filter(l => l.text);
 }
 
@@ -150,8 +155,27 @@ function computeBodySize(allLines) {
     return best || 10;
 }
 
-// Turn one page's lines into Markdown, using a shared document body size.
-function linesToMarkdown(lines, bodySize) {
+// Dominant font across the document = body text font. Lines in a different
+// font are likely headings (bold), even if not larger than the body.
+function computeBodyFont(allLines) {
+    const freq = {};
+    allLines.forEach(l => { if (l.font) freq[l.font] = (freq[l.font] || 0) + (l.text ? l.text.length : 1); });
+    let best = '', bestCount = -1;
+    Object.keys(freq).forEach(k => { if (freq[k] > bestCount) { bestCount = freq[k]; best = k; } });
+    return best;
+}
+
+// A short line in a non-body font, not ending like a sentence → bold heading.
+function looksLikeBoldHeading(l, bodyFont) {
+    if (!l.font || !bodyFont || l.font === bodyFont) return false;
+    const words = l.text.split(/\s+/).length;
+    if (words > 10) return false;
+    if (/[.:;,]$/.test(l.text)) return false;
+    return true;
+}
+
+// Turn one page's lines into Markdown, using a shared document body size + font.
+function linesToMarkdown(lines, bodySize, bodyFont) {
     if (!lines.length) return '';
 
     const bullet = /^[•·●▪–\-\*o]\s+/;
@@ -171,6 +195,7 @@ function linesToMarkdown(lines, bodySize) {
         else if (ratio >= 1.18) { type = 'h'; out = '### ' + l.text; }
         else if (bullet.test(l.text)) { type = 'li'; out = '- ' + l.text.replace(bullet, ''); }
         else if (ordered.test(l.text)) { type = 'li'; out = l.text; }
+        else if (looksLikeBoldHeading(l, bodyFont)) { type = 'h'; out = '## ' + l.text; }
 
         const gap = prevY !== null ? (prevY - l.y) : 0;
         const bigGap = gap > bodySize * 1.8;
@@ -245,14 +270,16 @@ async function startMarkdown() {
             if (i % 5 === 0) await new Promise(r => setTimeout(r, 10));
         }
 
-        // Global body font size across the whole document.
-        const bodySize = computeBodySize(perPageLines.flat());
+        // Global body font size + font across the whole document.
+        const allLines = perPageLines.flat();
+        const bodySize = computeBodySize(allLines);
+        const bodyFont = computeBodyFont(allLines);
 
         // Pass 2: render Markdown per page.
         const pagesMd = [];
         perPageLines.forEach((lines, idx) => {
             status.textContent = `Formatting page ${idx + 1} of ${total}...`;
-            const pageMd = linesToMarkdown(lines, bodySize);
+            const pageMd = linesToMarkdown(lines, bodySize, bodyFont);
             if (pageMd) pagesMd.push(pageMd);
         });
 
