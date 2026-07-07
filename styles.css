@@ -2178,3 +2178,45 @@ select {
     cursor: pointer;
 }
 
+/* Scannify live preview */
+.scan-preview {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.scan-preview-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.scan-preview-head .text-muted {
+    font-weight: 400;
+    font-size: 0.78rem;
+}
+
+.scan-preview-frame {
+    display: flex;
+    justify-content: center;
+    padding: 16px;
+    background: repeating-conic-gradient(rgba(255, 255, 255, 0.04) 0% 25%, transparent 0% 50%) 50% / 20px 20px;
+    background-color: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+}
+
+.scan-preview-frame canvas {
+    max-width: 100%;
+    max-height: 460px;
+    height: auto;
+    border-radius: 2px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+

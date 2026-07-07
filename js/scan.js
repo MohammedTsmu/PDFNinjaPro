@@ -1,9 +1,14 @@
 // Scannify Tool — turn a clean digital PDF into a scanned-looking PDF.
 // Each page is rasterised, given paper texture / skew / noise, then re-embedded
 // as a JPEG image into a fresh PDF (image-only, like a real scan).
+//
+// A live "page 1" preview shares the exact render pipeline used for export, so
+// what the user sees is what they get.
 
 let scanFile = null;
 let scanPdfDoc = null;
+let scanPreviewPage = null;
+let scanPreviewTimer = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     const dropZone = document.getElementById('scan-drop-zone');
@@ -15,16 +20,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (intensity && intensityVal) {
         intensity.addEventListener('input', (e) => {
-            const v = parseInt(e.target.value, 10);
-            let label = 'Medium';
-            if (v <= 0) label = 'None (clean)';
-            else if (v <= 30) label = 'Light';
-            else if (v <= 60) label = 'Medium';
-            else if (v <= 80) label = 'Heavy';
-            else label = 'Old photocopy';
-            intensityVal.textContent = label;
+            intensityVal.textContent = intensityLabel(parseInt(e.target.value, 10));
+            scheduleScanPreview();
         });
     }
+
+    // Color mode radios -> refresh preview
+    document.querySelectorAll('input[name="scan-color"]').forEach(r => {
+        r.addEventListener('change', () => scheduleScanPreview());
+    });
 
     if (dropZone && fileInput) {
         dropZone.addEventListener('click', () => fileInput.click());
@@ -54,6 +58,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (startBtn) startBtn.addEventListener('click', startScannify);
 });
 
+function intensityLabel(v) {
+    if (v <= 0) return 'None (clean)';
+    if (v <= 30) return 'Light';
+    if (v <= 60) return 'Medium';
+    if (v <= 80) return 'Heavy';
+    return 'Old photocopy';
+}
+
 async function handleScanFile(file) {
     scanFile = file;
 
@@ -68,6 +80,9 @@ async function handleScanFile(file) {
     try {
         const arrayBuffer = await file.arrayBuffer();
         scanPdfDoc = await pdfjsLib.getDocument(arrayBuffer).promise;
+        scanPreviewPage = await scanPdfDoc.getPage(1);
+        document.getElementById('scan-preview-wrap').classList.remove('hidden');
+        renderScanPreview();
     } catch (e) {
         console.error(e);
         alert('Invalid PDF file.');
@@ -78,13 +93,38 @@ async function handleScanFile(file) {
 function resetScanUI() {
     scanFile = null;
     scanPdfDoc = null;
+    scanPreviewPage = null;
 
     document.getElementById('scan-drop-zone').classList.remove('hidden');
     document.getElementById('scan-file-info').classList.add('hidden');
     document.getElementById('scan-settings').classList.add('hidden');
+    document.getElementById('scan-preview-wrap').classList.add('hidden');
     document.getElementById('start-scan-btn').classList.add('hidden');
     document.getElementById('scan-progress-container').classList.add('hidden');
     document.getElementById('scan-upload').value = '';
+}
+
+// ---- Shared render pipeline (used by both preview and export) ----
+
+function currentScanSettings() {
+    const grayscale = document.querySelector('input[name="scan-color"]:checked').value === 'gray';
+    const t = parseInt(document.getElementById('scan-intensity').value, 10) / 100; // 0..1
+    return {
+        grayscale,
+        t,
+        rotationMax: t * 2.2,        // degrees of random skew
+        noiseAmount: t * 32,         // +/- luminance jitter
+        contrast: 1 + t * 0.22,      // contrast boost
+        vignette: t * 0.22,          // scanner-edge darkening
+        quality: Math.max(0.45, 0.82 - t * 0.22) // JPEG quality (lower = more "scanned")
+    };
+}
+
+// Paper tint: cleaner near-white at low intensity, warmer/greyer as it rises.
+function scanPaperColor(grayscale, t) {
+    const lerp = (a, b) => Math.round(a + (b - a) * t);
+    if (grayscale) return `rgb(${lerp(249, 231)}, ${lerp(249, 229)}, ${lerp(247, 223)})`;
+    return `rgb(${lerp(250, 241)}, ${lerp(249, 235)}, ${lerp(245, 226)})`;
 }
 
 // Apply grayscale / contrast / paper noise in place.
@@ -98,13 +138,11 @@ function applyScanEffects(imgData, opts) {
             const v = 0.299 * r + 0.587 * g + 0.114 * b;
             r = g = b = v;
         }
-        // Contrast
         r = r * c + intercept;
         g = g * c + intercept;
         b = b * c + intercept;
-        // Paper noise
-        if (opts.noise > 0) {
-            const n = (Math.random() - 0.5) * opts.noise;
+        if (opts.noiseAmount > 0) {
+            const n = (Math.random() - 0.5) * opts.noiseAmount;
             r += n; g += n; b += n;
         }
         d[i] = r < 0 ? 0 : r > 255 ? 255 : r;
@@ -112,6 +150,74 @@ function applyScanEffects(imgData, opts) {
         d[i + 2] = b < 0 ? 0 : b > 255 ? 255 : b;
     }
 }
+
+// Render one page with scan effects onto a canvas.
+async function scannifyToCanvas(page, settings, scale) {
+    const viewport = page.getViewport({ scale });
+
+    const src = document.createElement('canvas');
+    src.width = viewport.width;
+    src.height = viewport.height;
+    await page.render({ canvasContext: src.getContext('2d'), viewport }).promise;
+
+    const out = document.createElement('canvas');
+    out.width = viewport.width;
+    out.height = viewport.height;
+    const ctx = out.getContext('2d');
+    ctx.fillStyle = scanPaperColor(settings.grayscale, settings.t);
+    ctx.fillRect(0, 0, out.width, out.height);
+
+    const angle = (Math.random() - 0.5) * 2 * settings.rotationMax * Math.PI / 180;
+    ctx.save();
+    ctx.translate(out.width / 2, out.height / 2);
+    ctx.rotate(angle);
+    const shrink = 0.975;
+    ctx.drawImage(src, -out.width / 2 * shrink, -out.height / 2 * shrink,
+        out.width * shrink, out.height * shrink);
+    ctx.restore();
+
+    const imgData = ctx.getImageData(0, 0, out.width, out.height);
+    applyScanEffects(imgData, settings);
+    ctx.putImageData(imgData, 0, 0);
+
+    // Scanner-edge vignette (darker toward the borders).
+    if (settings.vignette > 0) {
+        const cx = out.width / 2, cy = out.height / 2;
+        const g = ctx.createRadialGradient(cx, cy, Math.min(cx, cy) * 0.55, cx, cy, Math.hypot(cx, cy));
+        g.addColorStop(0, 'rgba(0,0,0,0)');
+        g.addColorStop(1, `rgba(0,0,0,${settings.vignette})`);
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, out.width, out.height);
+        ctx.globalCompositeOperation = 'source-over';
+    }
+
+    return out;
+}
+
+// ---- Live preview ----
+
+function scheduleScanPreview() {
+    if (!scanPreviewPage) return;
+    clearTimeout(scanPreviewTimer);
+    scanPreviewTimer = setTimeout(renderScanPreview, 150);
+}
+
+async function renderScanPreview() {
+    if (!scanPreviewPage) return;
+    try {
+        const settings = currentScanSettings();
+        const canvas = await scannifyToCanvas(scanPreviewPage, settings, 1.1);
+        const target = document.getElementById('scan-preview-canvas');
+        target.width = canvas.width;
+        target.height = canvas.height;
+        target.getContext('2d').drawImage(canvas, 0, 0);
+    } catch (e) {
+        console.error('Scan preview error:', e);
+    }
+}
+
+// ---- Export ----
 
 async function startScannify() {
     if (!scanPdfDoc) return;
@@ -122,14 +228,7 @@ async function startScannify() {
     const currentSpan = document.getElementById('scan-current-page');
     const totalSpan = document.getElementById('scan-total-pages');
 
-    const grayscale = document.querySelector('input[name="scan-color"]:checked').value === 'gray';
-    const intensity = parseInt(document.getElementById('scan-intensity').value, 10) / 100; // 0..1
-
-    // Map intensity to effect strength.
-    const rotationMax = intensity * 1.1;          // degrees of random skew
-    const noiseAmount = intensity * 20;           // +/- luminance jitter
-    const contrast = 1 + intensity * 0.18;        // mild contrast boost
-    const quality = 0.8 - intensity * 0.18;       // lower quality = more "scanned"
+    const settings = currentScanSettings();
 
     startBtn.disabled = true;
     startBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scanning...';
@@ -148,40 +247,10 @@ async function startScannify() {
             if (window.updateLoader) window.updateLoader('Scanning page ' + i + ' of ' + total + '…');
 
             const page = await scanPdfDoc.getPage(i);
-            const scale = 2.0;
-            const viewport = page.getViewport({ scale });
             const pageDims = page.getViewport({ scale: 1 }); // PDF points for output page size
+            const canvas = await scannifyToCanvas(page, settings, 2.0);
 
-            // 1. Render the page.
-            const src = document.createElement('canvas');
-            src.width = viewport.width;
-            src.height = viewport.height;
-            await page.render({ canvasContext: src.getContext('2d'), viewport }).promise;
-
-            // 2. Compose onto an off-white "paper" with a slight skew.
-            const out = document.createElement('canvas');
-            out.width = viewport.width;
-            out.height = viewport.height;
-            const ctx = out.getContext('2d');
-            ctx.fillStyle = grayscale ? 'rgb(249, 249, 247)' : 'rgb(250, 249, 245)';
-            ctx.fillRect(0, 0, out.width, out.height);
-
-            const angle = (Math.random() - 0.5) * 2 * rotationMax * Math.PI / 180;
-            ctx.save();
-            ctx.translate(out.width / 2, out.height / 2);
-            ctx.rotate(angle);
-            const shrink = 0.985; // keep rotated content inside the page
-            ctx.drawImage(src, -out.width / 2 * shrink, -out.height / 2 * shrink,
-                out.width * shrink, out.height * shrink);
-            ctx.restore();
-
-            // 3. Post-process pixels (grayscale / contrast / noise).
-            const imgData = ctx.getImageData(0, 0, out.width, out.height);
-            applyScanEffects(imgData, { grayscale, contrast, noise: noiseAmount });
-            ctx.putImageData(imgData, 0, 0);
-
-            // 4. Embed as JPEG into the output PDF at the original page size.
-            const blob = await new Promise(res => out.toBlob(res, 'image/jpeg', Math.max(0.5, quality)));
+            const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', settings.quality));
             const jpgBytes = new Uint8Array(await blob.arrayBuffer());
             const jpg = await outPdf.embedJpg(jpgBytes);
             const newPage = outPdf.addPage([pageDims.width, pageDims.height]);
