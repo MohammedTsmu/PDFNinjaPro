@@ -207,6 +207,12 @@
                             <i class="fas fa-lock"></i> <span>Protect</span>
                         </button>
                     </li>
+                    <li class="nav-item">
+                        <button class="nav-btn" data-target="watermark" id="watermark-tab"
+                            data-tooltip="Stamp a watermark on every page" data-tooltip-pos="right">
+                            <i class="fas fa-stamp"></i> <span>Watermark</span>
+                        </button>
+                    </li>
                 </ul>
             </nav>
 
@@ -921,6 +927,107 @@
                     </div>
                 </div>
 
+                <!-- Watermark Tool -->
+                <div id="watermark" class="tool-panel hidden">
+                    <div class="tool-header">
+                        <h3><i class="fas fa-stamp"></i> Watermark PDF</h3>
+                        <p class="text-muted">Stamp a diagonal text watermark across every page of your PDF.</p>
+                    </div>
+
+                    <div class="upload-zone" id="watermark-drop-zone">
+                        <div class="upload-icon-wrapper">
+                            <svg class="upload-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                            <div class="upload-ripple"></div>
+                        </div>
+                        <h2 class="upload-title">Drop PDF here</h2>
+                        <input type="file" id="watermark-upload" accept="application/pdf" style="display: none;">
+                    </div>
+
+                    <div id="watermark-file-info" class="file-status-card hidden">
+                        <div class="file-icon"><i class="fas fa-file-pdf"></i></div>
+                        <div class="file-details">
+                            <div class="filename" id="watermark-filename">filename.pdf</div>
+                            <div class="meta" id="watermark-filesize">0 MB</div>
+                        </div>
+                        <button class="btn-close" id="watermark-reset-btn"><i class="fas fa-times"></i></button>
+                    </div>
+
+                    <div id="watermark-settings" class="settings-panel hidden">
+                        <div class="setting-group">
+                            <label class="setting-label" for="watermark-text">Watermark text</label>
+                            <input type="text" id="watermark-text" class="form-control" value="CONFIDENTIAL"
+                                placeholder="Enter watermark text">
+                        </div>
+
+                        <div class="setting-group">
+                            <label class="setting-label">Color</label>
+                            <input type="color" id="watermark-color" value="#ff0000"
+                                style="width:50px; height:35px; border:none; border-radius:6px; cursor:pointer;">
+                        </div>
+
+                        <div class="setting-group">
+                            <div class="setting-header">
+                                <label class="setting-label">Opacity</label>
+                                <span class="setting-value" id="watermark-opacity-val">20%</span>
+                            </div>
+                            <input type="range" id="watermark-opacity" class="slider" min="0.05" max="1" step="0.05"
+                                value="0.2">
+                        </div>
+
+                        <div class="setting-group">
+                            <div class="setting-header">
+                                <label class="setting-label">Font size</label>
+                                <span class="setting-value" id="watermark-size-val">48</span>
+                            </div>
+                            <input type="range" id="watermark-size" class="slider" min="12" max="144" step="2"
+                                value="48">
+                        </div>
+
+                        <div class="setting-group">
+                            <div class="setting-header">
+                                <label class="setting-label">Rotation</label>
+                                <span class="setting-value" id="watermark-rotation-val">45°</span>
+                            </div>
+                            <input type="range" id="watermark-rotation" class="slider" min="-90" max="90" step="5"
+                                value="45">
+                        </div>
+                    </div>
+
+                    <div id="watermark-preview-wrap" class="scan-preview hidden">
+                        <div class="scan-preview-head">
+                            <span><i class="fas fa-eye"></i> Live preview</span>
+                            <span class="text-muted">Page 1 · updates as you change settings</span>
+                        </div>
+                        <div class="scan-preview-frame">
+                            <canvas id="watermark-preview-canvas"></canvas>
+                        </div>
+                    </div>
+
+                    <button id="start-watermark-btn" class="btn btn-primary hidden"
+                        style="width:100%; margin-top:20px;">
+                        <i class="fas fa-stamp"></i> Apply &amp; Save
+                    </button>
+
+                    <div id="watermark-progress-container" class="hidden" style="margin-top:20px;">
+                        <div
+                            style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:0.9em; color:#ccc;">
+                            <span>Stamping...</span>
+                            <span><span id="watermark-current-page">0</span> / <span
+                                    id="watermark-total-pages">0</span></span>
+                        </div>
+                        <div class="progress-bar"
+                            style="background:#333; height:8px; border-radius:4px; overflow:hidden;">
+                            <div class="progress-fill" id="watermark-progress-fill"
+                                style="width:0%; height:100%; background:var(--primary-color); transition:width 0.1s;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Markdown Tool (PDF -> Markdown) -->
                 <div id="markdown" class="tool-panel hidden">
                     <div class="tool-header">
@@ -1219,7 +1326,7 @@
             </div>
 
             <footer class="app-footer">
-                <p id="copyright">&copy; 2026 PDF Ninja Pro v1.6.1.</p>
+                <p id="copyright">&copy; 2026 PDF Ninja Pro v1.7.0.</p>
                 <div class="footer-links">
                     <a href="index.html">Home</a>
                     <span class="sep">·</span>
@@ -1304,6 +1411,7 @@
     <script src="js/background.js?v=2"></script>
     <script src="js/images-to-pdf.js"></script>
     <script src="js/scan.js?v=2"></script>
+    <script src="js/watermark.js?v=1"></script>
     <script src="js/markdown.js?v=1"></script>
     <script src="js/copyright.js"></script>
 
@@ -1336,7 +1444,7 @@
                     const workspace = document.getElementById('single-doc-workspace');
 
                     // Tools with their own self-contained UI (no shared workspace)
-                    const selfContainedTools = ['merge', 'rotate', 'reorder', 'background', 'images-to-pdf', 'comment', 'convert', 'extract', 'scan', 'markdown', 'compress', 'ocr', 'password'];
+                    const selfContainedTools = ['merge', 'rotate', 'reorder', 'background', 'images-to-pdf', 'comment', 'convert', 'extract', 'scan', 'markdown', 'compress', 'ocr', 'password', 'watermark'];
 
                     // Toggle Workspace (Hide for self-contained tools, Show for others)
                     if (selfContainedTools.includes(targetId)) {
