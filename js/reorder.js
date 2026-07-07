@@ -2,6 +2,7 @@
 
 let reorderFile = null;
 let reorderPdfDoc = null;
+let reorderBytes = null; // decrypted bytes for pdf-lib save (handles protected PDFs)
 let reorderPages = []; // { pageIndex, element }
 let reorderSortable = null;
 
@@ -49,7 +50,10 @@ async function handleReorderFile(file) {
 
     try {
         const arrayBuffer = await file.arrayBuffer();
-        reorderPdfDoc = await pdfjsLib.getDocument(arrayBuffer).promise;
+        const loaded = await window.loadPdfProtected(arrayBuffer);
+        if (!loaded) { resetReorderUI(); return; } // password prompt cancelled
+        reorderPdfDoc = loaded.pdfDoc;
+        reorderBytes = loaded.bytes;
         renderReorderGrid();
     } catch (e) {
         console.error(e);
@@ -61,6 +65,7 @@ async function handleReorderFile(file) {
 function resetReorderUI() {
     reorderFile = null;
     reorderPdfDoc = null;
+    reorderBytes = null;
     reorderPages = [];
     if (reorderSortable) {
         reorderSortable.destroy();
@@ -273,8 +278,7 @@ async function saveReorderedPDF() {
     btn.disabled = true;
 
     try {
-        const arrayBuffer = await reorderFile.arrayBuffer();
-        const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+        const pdfDoc = await PDFLib.PDFDocument.load(reorderBytes, { ignoreEncryption: true });
         const newPdfDoc = await PDFLib.PDFDocument.create();
 
         // Get new order from DOM

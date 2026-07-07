@@ -5,8 +5,12 @@ window.extractSinglePage = async function (pageNum) {
 
     try {
         const file = fileInput.files[0];
-        const arrayBuffer = await file.arrayBuffer();
-        const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+        // Use the decrypted bytes captured at load time (main.js) so protected
+        // PDFs work; fall back to reading the file for the unencrypted case.
+        const srcBytes = window.pdfBytesDecrypted
+            ? window.pdfBytesDecrypted.slice()
+            : new Uint8Array(await file.arrayBuffer());
+        const pdfDoc = await PDFLib.PDFDocument.load(srcBytes, { ignoreEncryption: true });
         const newPdf = await PDFLib.PDFDocument.create();
 
         const [copiedPage] = await newPdf.copyPages(pdfDoc, [pageNum - 1]);
@@ -51,8 +55,10 @@ document.getElementById('batch-split-btn')?.addEventListener('click', async func
 
     try {
         const file = fileInput.files[0];
-        const arrayBuffer = await file.arrayBuffer();
-        const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+        const srcBytes = window.pdfBytesDecrypted
+            ? window.pdfBytesDecrypted.slice()
+            : new Uint8Array(await file.arrayBuffer());
+        const pdfDoc = await PDFLib.PDFDocument.load(srcBytes, { ignoreEncryption: true });
         const total = pdfDoc.getPageCount();
         const numFiles = Math.ceil(total / size);
 
@@ -260,7 +266,9 @@ document.getElementById('split-btn').addEventListener('click', async function ()
             const splitBtn = document.getElementById('split-btn');
             if (window.showLoader) window.showLoader('Splitting your PDF…');
             try {
-            const typedarray = new Uint8Array(this.result);
+            const typedarray = window.pdfBytesDecrypted
+                ? window.pdfBytesDecrypted.slice()
+                : new Uint8Array(this.result);
             const pdfDoc = await PDFLib.PDFDocument.load(typedarray, { ignoreEncryption: true });
             const pdfLibDoc = await PDFLib.PDFDocument.create();
 

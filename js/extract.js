@@ -79,7 +79,9 @@ async function handleExtractFile(file) {
 
     try {
         const arrayBuffer = await file.arrayBuffer();
-        extractPdfDoc = await pdfjsLib.getDocument(arrayBuffer).promise;
+        const loaded = await window.loadPdfProtected(arrayBuffer);
+        if (!loaded) { resetExtractUI(); return; } // password prompt cancelled
+        extractPdfDoc = loaded.pdfDoc;
     } catch (e) {
         console.error(e);
         alert("Invalid PDF file.");

@@ -72,7 +72,9 @@ async function handleCompressFile(file) {
 
     try {
         const arrayBuffer = await file.arrayBuffer();
-        compressPdfDoc = await pdfjsLib.getDocument(arrayBuffer).promise;
+        const loaded = await window.loadPdfProtected(arrayBuffer);
+        if (!loaded) { resetCompressUI(); return; } // password prompt cancelled
+        compressPdfDoc = loaded.pdfDoc;
 
         // Render page 1 ONCE. Estimates downscale this cached canvas rather than
         // re-rendering the PDF page (avoids concurrent pdf.js renders on rapid

@@ -7,23 +7,10 @@
 // (GitHub Pages): no WASM, no special headers.
 
 let passwordFile = null;
-let cantooLib = null;
 
-// Lazy-load @cantoo/pdf-lib from CDN, isolated from window.PDFLib.
-async function getCantoo() {
-    if (cantooLib) return cantooLib;
-    const orig = window.PDFLib;
-    await new Promise((res, rej) => {
-        const s = document.createElement('script');
-        s.src = 'https://cdn.jsdelivr.net/npm/@cantoo/pdf-lib/dist/pdf-lib.min.js';
-        s.onload = res;
-        s.onerror = () => rej(new Error('Failed to load the encryption library (check your connection).'));
-        document.head.appendChild(s);
-    });
-    cantooLib = window.PDFLib;
-    window.PDFLib = orig; // restore the app's original pdf-lib
-    return cantooLib;
-}
+// @cantoo/pdf-lib is the only lib here that can encrypt/decrypt. The lazy,
+// PDFLib-isolated loader lives in js/ui.js (loaded first) and is shared by
+// every tool as window.getCantoo — startProtect() calls it directly below.
 
 document.addEventListener('DOMContentLoaded', () => {
     const dropZone = document.getElementById('password-drop-zone');
@@ -127,7 +114,7 @@ async function startProtect() {
     if (window.showLoader) window.showLoader('Encrypting your PDF…');
 
     try {
-        const Cantoo = await getCantoo();
+        const Cantoo = await window.getCantoo();
         const bytes = new Uint8Array(await passwordFile.arrayBuffer());
 
         let doc;

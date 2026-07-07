@@ -79,7 +79,9 @@ async function handleScanFile(file) {
 
     try {
         const arrayBuffer = await file.arrayBuffer();
-        scanPdfDoc = await pdfjsLib.getDocument(arrayBuffer).promise;
+        const loaded = await window.loadPdfProtected(arrayBuffer);
+        if (!loaded) { resetScanUI(); return; } // password prompt cancelled
+        scanPdfDoc = loaded.pdfDoc;
         scanPreviewPage = await scanPdfDoc.getPage(1);
         document.getElementById('scan-preview-wrap').classList.remove('hidden');
         renderScanPreview();

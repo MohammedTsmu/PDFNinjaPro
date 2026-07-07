@@ -2,6 +2,7 @@
 
 let rotateFile = null;
 let rotatePdfDoc = null;
+let rotateBytes = null; // decrypted bytes for pdf-lib save (handles protected PDFs)
 let rotatePages = []; // { pageIndex, rotation, element }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -55,7 +56,10 @@ async function handleRotateFile(file) {
 
     try {
         const arrayBuffer = await file.arrayBuffer();
-        rotatePdfDoc = await pdfjsLib.getDocument(arrayBuffer).promise;
+        const loaded = await window.loadPdfProtected(arrayBuffer);
+        if (!loaded) { resetRotateUI(); return; } // password prompt cancelled
+        rotatePdfDoc = loaded.pdfDoc;
+        rotateBytes = loaded.bytes;
         renderRotateGrid();
     } catch (e) {
         console.error(e);
@@ -67,6 +71,7 @@ async function handleRotateFile(file) {
 function resetRotateUI() {
     rotateFile = null;
     rotatePdfDoc = null;
+    rotateBytes = null;
     rotatePages = [];
     document.getElementById('rotate-grid').innerHTML = '';
 
@@ -203,8 +208,7 @@ async function saveRotatedPDF() {
     btn.disabled = true;
 
     try {
-        const arrayBuffer = await rotateFile.arrayBuffer();
-        const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+        const pdfDoc = await PDFLib.PDFDocument.load(rotateBytes, { ignoreEncryption: true });
         const pages = pdfDoc.getPages();
 
         rotatePages.forEach(p => {
