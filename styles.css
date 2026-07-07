@@ -1517,6 +1517,38 @@ body {
   box-shadow: 0 0 20px rgba(244, 63, 94, 0.3);
 }
 
+/* Delete Pages Tool */
+.delete-card {
+  cursor: pointer;
+  position: relative;
+}
+
+/* Red badge shown only on pages marked for deletion */
+.page-card.marked .delete-badge {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: white;
+}
+
+.page-card.marked {
+  border: 2px solid #dc2626;
+  box-shadow: 0 0 20px rgba(220, 38, 38, 0.4);
+}
+
+/* Dim + red wash over pages marked for deletion */
+.page-card.marked .canvas-wrapper::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(220, 38, 38, 0.35);
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+.delete-card .canvas-wrapper {
+  position: relative;
+}
+
 /* Background Card Cursor */
 .background-card {
   cursor: pointer;

@@ -172,6 +172,12 @@
                         </button>
                     </li>
                     <li class="nav-item">
+                        <button class="nav-btn" data-target="delete" id="delete-tab"
+                            data-tooltip="Delete PDF pages" data-tooltip-pos="right">
+                            <i class="fas fa-file-circle-minus"></i> <span>Delete Pages</span>
+                        </button>
+                    </li>
+                    <li class="nav-item">
                         <button class="nav-btn" data-target="images-to-pdf" id="images-to-pdf-tab"
                             data-tooltip="Convert images to PDF" data-tooltip-pos="right">
                             <i class="fas fa-images"></i> <span>Images to PDF</span>
@@ -789,6 +795,61 @@
                     <div id="background-grid" class="page-grid hidden" style="margin-top:20px;"></div>
                 </div>
 
+                <!-- ================= DELETE PAGES TOOL ================= -->
+                <div id="delete" class="tool-panel hidden">
+                    <div class="tool-header">
+                        <h3><i class="fas fa-file-circle-minus"></i> Delete Pages</h3>
+                        <p class="text-muted">Click pages to mark them for removal, then save a trimmed PDF.</p>
+                    </div>
+
+                    <!-- Drop Zone -->
+                    <div class="upload-zone" id="delete-drop-zone">
+                        <div class="upload-icon-wrapper">
+                            <svg class="upload-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            <div class="upload-ripple"></div>
+                        </div>
+                        <h2 class="upload-title">Drop PDF here</h2>
+                        <input type="file" id="delete-upload" accept="application/pdf" style="display: none;">
+                    </div>
+
+                    <!-- File Info -->
+                    <div id="delete-file-info" class="file-status-card hidden">
+                        <div class="file-icon"><i class="fas fa-file-pdf"></i></div>
+                        <div class="file-details">
+                            <div class="filename" id="delete-filename">filename.pdf</div>
+                            <div class="meta" id="delete-filesize">0 MB</div>
+                        </div>
+                        <button class="btn-close" id="delete-reset-btn"><i class="fas fa-times"></i></button>
+                    </div>
+
+                    <!-- Toolbar -->
+                    <div id="delete-toolbar" class="toolbar-container hidden"
+                        style="margin-top:15px; display:flex; gap:15px; flex-wrap:wrap; align-items:center; padding:15px; background:rgba(255,255,255,0.05); border-radius:8px;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <label style="font-size:13px; color:var(--text-muted);">Range:</label>
+                            <input type="text" id="delete-range" placeholder="e.g. 2-4, 7"
+                                style="width:110px; height:32px; border-radius:6px; border:1px solid rgba(255,255,255,0.2); background:rgba(0,0,0,0.3); color:white; padding:0 8px;">
+                            <button id="delete-range-apply" class="btn btn-sm btn-outline-light">Mark</button>
+                        </div>
+                        <button id="delete-select-all" class="btn btn-sm btn-outline-light"><i
+                                class="fas fa-check-double"></i> Select All</button>
+                        <button id="delete-clear" class="btn btn-sm btn-dark"><i class="fas fa-eraser"></i>
+                            Clear</button>
+                        <div style="flex-grow:1;"></div>
+                        <span id="delete-count"
+                            style="font-size:13px; color:var(--accent-color);">0 pages will be removed</span>
+                        <button id="delete-save-btn" class="btn btn-primary"><i class="fas fa-download"></i> Delete &
+                            Save</button>
+                    </div>
+
+                    <!-- Page Grid -->
+                    <div id="delete-grid" class="page-grid hidden" style="margin-top:20px;"></div>
+                </div>
+
                 <!-- Images to PDF Tool -->
                 <div id="images-to-pdf" class="tool-panel hidden">
                     <div class="tool-header">
@@ -1362,6 +1423,7 @@
     <script src="js/rotate.js?v=1"></script>
     <script src="js/reorder.js?v=1"></script>
     <script src="js/background.js?v=3"></script>
+    <script src="js/delete.js?v=1"></script>
     <script src="js/images-to-pdf.js?v=1"></script>
     <script src="js/scan.js?v=2"></script>
     <script src="js/markdown.js?v=1"></script>
@@ -1396,7 +1458,7 @@
                     const workspace = document.getElementById('single-doc-workspace');
 
                     // Tools with their own self-contained UI (no shared workspace)
-                    const selfContainedTools = ['merge', 'rotate', 'reorder', 'background', 'images-to-pdf', 'comment', 'convert', 'extract', 'scan', 'markdown', 'compress', 'ocr', 'password', 'unlock'];
+                    const selfContainedTools = ['merge', 'rotate', 'reorder', 'background', 'delete', 'images-to-pdf', 'comment', 'convert', 'extract', 'scan', 'markdown', 'compress', 'ocr', 'password', 'unlock'];
 
                     // Toggle Workspace (Hide for self-contained tools, Show for others)
                     if (selfContainedTools.includes(targetId)) {
