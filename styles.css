@@ -598,31 +598,9 @@ body {
     padding: 10px;
   }
 
-  .sidebar {
-    width: 100%;
-    height: auto;
-    position: relative;
-    top: 0;
-    flex-direction: row;
-    overflow-x: auto;
-    padding: 15px;
-    align-items: center;
-  }
-
-  .nav-btn span {
-    display: none;
-    /* Hide text on mobile for compact sidebar */
-  }
-
-  .nav-btn {
-    width: auto;
-    padding: 10px;
-    justify-content: center;
-  }
-
-  .nav-menu {
-    flex-direction: row;
-  }
+  /* Mobile sidebar is a full-height slide-in drawer (see the drawer rules
+     further down). It keeps the vertical, labelled layout from the base
+     styles — no horizontal icon-only strip. */
 }
 
 /* SortableJS Feedback */
@@ -1623,6 +1601,10 @@ select {
     z-index: 1000;
     transition: left 0.3s ease;
     overflow-y: auto;
+    /* Near-solid background so page content doesn't bleed through the
+       translucent glass while the drawer is open. */
+    background: rgba(15, 23, 42, 0.98);
+    border-radius: 0;
   }
 
   .sidebar.open {
@@ -1723,10 +1705,9 @@ select {
   transform: rotate(180deg);
 }
 
-/* Adjust main content when sidebar collapsed */
-.app-container.sidebar-collapsed .main-content {
-  margin-left: 70px;
-}
+/* The sidebar is an in-flow flex child, so collapsing its width already
+   reflows the main content. No extra margin needed (a margin here would
+   double the offset and leave an empty gap). */
 
 /* Hide collapse button on mobile */
 @media (max-width: 900px) {
@@ -1734,10 +1715,10 @@ select {
     display: none !important;
   }
 }
-/* Ensure sidebar has relative positioning for collapse button */
-.sidebar {
-    position: relative;
-}
+/* NOTE: the sidebar stays `position: sticky` (base styles) so it pins while
+   scrolling long page grids. Sticky already establishes the positioning
+   context the absolutely-positioned collapse button needs — do not override
+   it to `relative` here. */
 
 
 /* Better Collapsed State Styles */
@@ -1828,6 +1809,14 @@ select {
 /* Hover animation for collapsed buttons */
 .sidebar.collapsed .nav-btn:hover {
     transform: scale(1.08);
+}
+
+/* Nav tooltips are only useful when the sidebar is collapsed (labels hidden).
+   When expanded, the label is already visible, so suppress the redundant
+   tooltip. */
+.sidebar:not(.collapsed) .nav-btn[data-tooltip]::before,
+.sidebar:not(.collapsed) .nav-btn[data-tooltip]::after {
+    content: none;
 }
 
 
