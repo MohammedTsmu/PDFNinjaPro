@@ -427,6 +427,7 @@
             split: 'file-status-card',
             convert: 'convert-file-info',
             comment: 'comment-file-info',
+            edit: 'edit-file-info',
             extract: 'extract-file-info',
             rotate: 'rotate-file-info',
             reorder: 'reorder-file-info',

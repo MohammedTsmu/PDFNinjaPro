@@ -2314,3 +2314,864 @@ select {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
 }
 
+
+/* =========================================
+   Edit PDF Tool
+   ========================================= */
+
+/* ---- toolbar ---- */
+.edit-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  margin-top: 18px;
+  border-radius: var(--radius-md);
+  background: rgba(15, 23, 42, 0.94);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+.edit-toolrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.edit-toolrow+.edit-toolrow {
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.edit-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.edit-sep {
+  width: 1px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.15);
+  margin: 0 4px;
+}
+
+.edit-spacer {
+  flex: 1 1 auto;
+}
+
+.edit-tool-btn {
+  min-width: 36px;
+  height: 32px;
+  padding: 0 9px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: var(--transition);
+}
+
+.edit-tool-btn:hover {
+  background: rgba(255, 255, 255, 0.11);
+  color: var(--text-main);
+}
+
+.edit-tool-btn.active {
+  background: var(--primary-gradient);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 2px 10px rgba(59, 130, 246, 0.45);
+}
+
+.edit-tool-hero span {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.edit-tool-hero {
+  border-color: rgba(244, 63, 94, 0.45);
+  color: #fda4af;
+}
+
+.edit-tool-hero.active {
+  background: linear-gradient(135deg, #fb7185, #f43f5e);
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(244, 63, 94, 0.5);
+}
+
+.edit-icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition: var(--transition);
+}
+
+.edit-icon-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-main);
+}
+
+.edit-icon-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.edit-icon-btn.active {
+  background: var(--primary-gradient);
+  color: #fff;
+  border-color: transparent;
+}
+
+.edit-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 9px;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.edit-group:first-of-type {
+  border-left: none;
+}
+
+.edit-zoom-level {
+  min-width: 46px;
+  text-align: center;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.edit-pagecount {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+#edit-page-input {
+  width: 52px;
+  height: 28px;
+  text-align: center;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--text-main);
+  font-family: inherit;
+}
+
+.edit-field {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.edit-field label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.edit-field input[type="color"] {
+  width: 34px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+}
+
+.edit-field input[type="number"] {
+  width: 62px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--text-main);
+  font-family: inherit;
+  padding: 0 6px;
+}
+
+.edit-field select {
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 12px;
+  padding: 0 6px;
+}
+
+.edit-field input[type="range"] {
+  width: 96px;
+  accent-color: var(--primary-color);
+}
+
+.edit-save {
+  padding: 8px 18px;
+  white-space: nowrap;
+}
+
+.edit-hintrow {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+  gap: 8px;
+}
+
+/* ---- body layout ---- */
+.edit-main {
+  display: grid;
+  grid-template-columns: 0 minmax(0, 1fr) 248px;
+  gap: 0;
+  margin-top: 18px;
+  align-items: start;
+  transition: grid-template-columns 0.25s ease;
+}
+
+.edit-main.pages-open {
+  grid-template-columns: 170px minmax(0, 1fr) 248px;
+  gap: 14px;
+}
+
+.edit-pages-panel {
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  max-height: 78vh;
+  position: sticky;
+  top: 170px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  transition: opacity 0.2s ease;
+}
+
+.edit-main.pages-open .edit-pages-panel {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.edit-side-head {
+  padding: 11px 13px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--glass-border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.edit-thumbs {
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.edit-thumb {
+  position: relative;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.edit-thumb:hover {
+  border-color: var(--primary-color);
+}
+
+.edit-thumb-shot {
+  border-radius: 6px;
+  overflow: hidden;
+  background: #fff;
+  line-height: 0;
+  cursor: grab;
+}
+
+.edit-thumb-shot canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.edit-thumb-no {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  min-width: 20px;
+  padding: 1px 5px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.85);
+  color: #fff;
+  font-size: 10px;
+  text-align: center;
+}
+
+.edit-thumb-acts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+  margin-top: 5px;
+}
+
+.edit-thumb-acts button {
+  height: 22px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+  font-size: 10px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.edit-thumb-acts button:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--text-main);
+}
+
+.edit-thumb-acts button.danger:hover {
+  background: #ef4444;
+  color: #fff;
+  border-color: transparent;
+}
+
+/* ---- the page canvas area ---- */
+.edit-workspace {
+  min-height: 300px;
+  padding: 4px 0 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 26px;
+}
+
+.edit-workspace.crosshair .edit-page-inner {
+  cursor: crosshair;
+}
+
+.edit-page-box {
+  position: relative;
+}
+
+.edit-page-label {
+  position: absolute;
+  top: -20px;
+  left: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+.edit-page-scaler {
+  transform-origin: top left;
+}
+
+.edit-page-inner {
+  position: relative;
+  background: #fff;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+  line-height: 0;
+}
+
+.edit-page-canvas {
+  display: block;
+}
+
+.edit-page-spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 26px;
+  color: rgba(0, 0, 0, 0.22);
+  pointer-events: none;
+}
+
+.edit-obj-layer,
+.edit-text-layer {
+  position: absolute;
+  inset: 0;
+  line-height: normal;
+}
+
+.edit-text-layer {
+  pointer-events: none;
+  z-index: 4;
+}
+
+.edit-text-layer.active {
+  pointer-events: auto;
+}
+
+.edit-text-pick {
+  position: absolute;
+  border-radius: 2px;
+  cursor: text;
+  background: rgba(59, 130, 246, 0.1);
+  outline: 1px dashed rgba(59, 130, 246, 0.45);
+  transition: background 0.12s ease;
+}
+
+.edit-text-pick:hover {
+  background: rgba(59, 130, 246, 0.28);
+  outline: 1px solid var(--primary-color);
+}
+
+/* ---- objects ---- */
+.edit-obj {
+  position: absolute;
+  z-index: 6;
+  transform-origin: center center;
+}
+
+.edit-obj:hover {
+  outline: 1px dashed rgba(59, 130, 246, 0.7);
+}
+
+.edit-obj.selected {
+  outline: 1.5px solid var(--primary-color);
+  z-index: 20;
+}
+
+.edit-obj-img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+
+.edit-obj-svg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.edit-text-body {
+  width: 100%;
+  min-height: 1em;
+  outline: none;
+  cursor: move;
+  overflow: visible;
+}
+
+.edit-obj.editing {
+  outline: 1.5px solid var(--secondary-color);
+}
+
+.edit-obj.editing .edit-text-body {
+  cursor: text;
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.edit-obj-whiteout,
+.edit-obj-highlight {
+  pointer-events: auto;
+}
+
+/* resize handles */
+.edit-handle {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  background: #fff;
+  border: 1.5px solid var(--primary-color);
+  border-radius: 2px;
+  display: none;
+  z-index: 30;
+}
+
+.edit-obj.selected>.edit-handle {
+  display: block;
+}
+
+.edit-handle-nw { top: -5px; left: -5px; cursor: nwse-resize; }
+.edit-handle-n  { top: -5px; left: calc(50% - 4.5px); cursor: ns-resize; }
+.edit-handle-ne { top: -5px; right: -5px; cursor: nesw-resize; }
+.edit-handle-e  { top: calc(50% - 4.5px); right: -5px; cursor: ew-resize; }
+.edit-handle-se { bottom: -5px; right: -5px; cursor: nwse-resize; }
+.edit-handle-s  { bottom: -5px; left: calc(50% - 4.5px); cursor: ns-resize; }
+.edit-handle-sw { bottom: -5px; left: -5px; cursor: nesw-resize; }
+.edit-handle-w  { top: calc(50% - 4.5px); left: -5px; cursor: ew-resize; }
+
+/* in-progress shape preview */
+.edit-ghost {
+  position: absolute;
+  z-index: 25;
+  pointer-events: none;
+  border: 1px dashed var(--primary-color);
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.edit-ghost-pen,
+.edit-ghost-line,
+.edit-ghost-arrow {
+  border: none;
+  background: none;
+}
+
+.edit-ghost-highlight {
+  border: none;
+  background: rgba(255, 232, 102, 0.5);
+}
+
+.edit-ghost-whiteout {
+  background: rgba(255, 255, 255, 0.75);
+  border-color: #64748b;
+}
+
+/* ---- inspector ---- */
+.edit-inspector {
+  position: sticky;
+  top: 170px;
+  max-height: 78vh;
+  overflow-y: auto;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  margin-left: 14px;
+}
+
+.edit-insp-empty {
+  padding: 26px 18px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.edit-insp-empty i {
+  font-size: 24px;
+  opacity: 0.4;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.edit-insp-title {
+  padding: 10px 14px;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-main);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.edit-insp-grp {
+  padding: 11px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.edit-insp-label {
+  display: block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.edit-insp-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.edit-insp-row+.edit-insp-row {
+  margin-top: 6px;
+}
+
+.edit-insp-val {
+  font-size: 11px;
+  color: var(--text-muted);
+  min-width: 38px;
+  font-variant-numeric: tabular-nums;
+}
+
+.edit-insp-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: none;
+  letter-spacing: 0;
+  margin: 0;
+}
+
+.edit-inspector select,
+.edit-inspector input[type="number"] {
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 12px;
+  padding: 0 6px;
+  width: 100%;
+}
+
+.edit-inspector input[type="number"] {
+  width: 64px;
+}
+
+.edit-inspector input[type="color"] {
+  width: 34px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.edit-inspector input[type="range"] {
+  flex: 1 1 60px;
+  min-width: 60px;
+  accent-color: var(--primary-color);
+}
+
+.edit-chip {
+  min-width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 11px;
+  font-family: inherit;
+  transition: var(--transition);
+}
+
+.edit-chip:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-main);
+}
+
+.edit-chip.active {
+  background: var(--primary-gradient);
+  color: #fff;
+  border-color: transparent;
+}
+
+.edit-insp-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.edit-insp-grid label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.edit-insp-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.edit-insp-actions .btn {
+  padding: 6px 4px;
+  font-size: 11px;
+}
+
+/* ---- signature modal ---- */
+.edit-sig-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  background: rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.edit-sig-modal.hidden {
+  display: none;
+}
+
+.edit-sig-box {
+  width: min(560px, 100%);
+  background: #0f172a;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  box-shadow: var(--glass-shadow);
+}
+
+.edit-sig-box h4 {
+  font-size: 16px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.edit-sig-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.edit-sig-tab {
+  padding: 6px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.edit-sig-tab.active {
+  background: var(--primary-gradient);
+  color: #fff;
+  border-color: transparent;
+}
+
+.edit-sig-type-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.edit-sig-type-row.hidden {
+  display: none;
+}
+
+.edit-sig-type-row input,
+.edit-sig-type-row select {
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--text-main);
+  font-family: inherit;
+  padding: 0 10px;
+}
+
+.edit-sig-type-row input {
+  flex: 1;
+}
+
+.edit-sig-canvas {
+  width: 100%;
+  height: 180px;
+  background: #fff;
+  border-radius: 10px;
+  cursor: crosshair;
+  touch-action: none;
+  display: block;
+}
+
+.edit-sig-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.edit-sig-foot label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.edit-sig-foot input[type="color"] {
+  width: 32px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+}
+
+/* ---- responsive ---- */
+@media (max-width: 1180px) {
+  .edit-main,
+  .edit-main.pages-open {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .edit-pages-panel {
+    display: none;
+  }
+
+  .edit-main.pages-open .edit-pages-panel {
+    display: flex;
+    max-height: 290px;
+    position: static;
+  }
+
+  .edit-main.pages-open .edit-thumbs {
+    flex-direction: row;
+    overflow-x: auto;
+  }
+
+  .edit-main.pages-open .edit-thumb {
+    flex: 0 0 120px;
+  }
+
+  .edit-inspector {
+    position: static;
+    max-height: none;
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .edit-toolbar {
+    padding: 10px;
+  }
+
+  .edit-group {
+    padding: 0 5px;
+  }
+
+  .edit-tool-hero span {
+    display: none;
+  }
+}

@@ -130,6 +130,12 @@
                         </button>
                     </li>
                     <li class="nav-item">
+                        <button class="nav-btn" data-target="edit" id="edit-tab"
+                            data-tooltip="Edit text, images and pages" data-tooltip-pos="right">
+                            <i class="fas fa-pen-to-square"></i> <span>Edit PDF</span>
+                        </button>
+                    </li>
+                    <li class="nav-item">
                         <button class="nav-btn" data-target="merge" id="merge-tab" data-tooltip="Combine multiple PDFs"
                             data-tooltip-pos="right">
                             <i class="fas fa-compress-alt"></i> <span>Merge PDFs</span>
@@ -174,7 +180,7 @@
                     <li class="nav-item">
                         <button class="nav-btn" data-target="delete" id="delete-tab"
                             data-tooltip="Delete PDF pages" data-tooltip-pos="right">
-                            <i class="fas fa-file-circle-minus"></i> <span>Delete Pages</span>
+                            <i class="fas fa-trash"></i> <span>Delete Pages</span>
                         </button>
                     </li>
                     <li class="nav-item">
@@ -1513,6 +1519,277 @@
                     </button>
                 </div>
 
+                <!-- Edit PDF Tool -->
+                <div id="edit" class="tool-panel hidden">
+                    <div class="tool-header">
+                        <h3><i class="fas fa-pen-to-square"></i> Edit PDF</h3>
+                        <p class="text-muted">Rewrite the text that is already in your PDF, add text, images and
+                            signatures, erase anything, draw, and reorganise pages &mdash; all without uploading a
+                            thing.</p>
+                    </div>
+
+                    <div class="upload-zone" id="edit-drop-zone">
+                        <div class="upload-icon-wrapper">
+                            <svg class="upload-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            <div class="upload-ripple"></div>
+                        </div>
+                        <h2 class="upload-title">Drop a PDF to Edit</h2>
+                        <p class="upload-subtitle">Click, or drag a file anywhere on this page</p>
+                        <input type="file" id="edit-upload" accept="application/pdf" style="display: none;">
+                    </div>
+
+                    <div id="edit-file-info" class="file-status-card hidden">
+                        <div class="file-icon"><i class="fas fa-file-pdf"></i></div>
+                        <div class="file-details">
+                            <div class="filename" id="edit-filename">filename.pdf</div>
+                            <div class="meta" id="edit-filesize">0 MB</div>
+                        </div>
+                        <button class="action-btn-remove" id="edit-reset-btn" title="Close document"><i
+                                class="fas fa-trash-alt"></i></button>
+                    </div>
+
+                    <!-- Editor toolbar -->
+                    <div id="edit-toolbar" class="edit-toolbar hidden">
+                        <div class="edit-toolrow">
+                            <div class="edit-tools" role="toolbar" aria-label="Editing tools">
+                                <button class="edit-tool-btn active" data-tool="select" title="Select / move (V)"><i
+                                        class="fas fa-arrow-pointer"></i></button>
+                                <button class="edit-tool-btn edit-tool-hero" data-tool="edittext"
+                                    title="Edit the PDF's own text (E)"><i class="fas fa-i-cursor"></i><span>Edit
+                                        text</span></button>
+                                <span class="edit-sep"></span>
+                                <button class="edit-tool-btn" data-tool="text" title="Add a text box (T)"><i
+                                        class="fas fa-font"></i></button>
+                                <button class="edit-tool-btn" data-tool="whiteout" title="Erase / white-out (W)"><i
+                                        class="fas fa-eraser"></i></button>
+                                <button class="edit-tool-btn" data-tool="image" title="Insert an image (I)"><i
+                                        class="fas fa-image"></i></button>
+                                <button class="edit-tool-btn" data-tool="signature" title="Signature (S)"><i
+                                        class="fas fa-signature"></i></button>
+                                <span class="edit-sep"></span>
+                                <button class="edit-tool-btn" data-tool="highlight" title="Highlight (H)"><i
+                                        class="fas fa-highlighter"></i></button>
+                                <button class="edit-tool-btn" data-tool="pen" title="Freehand pen (P)"><i
+                                        class="fas fa-pen"></i></button>
+                                <button class="edit-tool-btn" data-tool="line" title="Line (L)"><i
+                                        class="fas fa-minus"></i></button>
+                                <button class="edit-tool-btn" data-tool="arrow" title="Arrow (A)"><i
+                                        class="fas fa-arrow-right"></i></button>
+                                <button class="edit-tool-btn" data-tool="rect" title="Rectangle (R)"><i
+                                        class="far fa-square"></i></button>
+                                <button class="edit-tool-btn" data-tool="ellipse" title="Ellipse (O)"><i
+                                        class="far fa-circle"></i></button>
+                            </div>
+                        </div>
+
+                        <div class="edit-toolrow">
+                            <!-- New-object style -->
+                            <div class="edit-field">
+                                <label for="edit-new-color">Colour</label>
+                                <input type="color" id="edit-new-color" value="#111111">
+                            </div>
+                            <div class="edit-field hidden" id="edit-opts-text">
+                                <label for="edit-new-font">Font</label>
+                                <select id="edit-new-font">
+                                    <option value="Helvetica" selected>Helvetica</option>
+                                    <option value="TimesRoman">Times</option>
+                                    <option value="Courier">Courier</option>
+                                </select>
+                                <label for="edit-new-size">Size</label>
+                                <input type="number" id="edit-new-size" value="16" min="4" max="400" step="1">
+                            </div>
+                            <div class="edit-field hidden" id="edit-opts-draw">
+                                <label for="edit-new-stroke">Width</label>
+                                <input type="range" id="edit-new-stroke" min="1" max="14" step="1" value="2">
+                            </div>
+                            <div class="edit-field hidden" id="edit-opts-highlight">
+                                <label for="edit-new-highlight">Highlight</label>
+                                <input type="color" id="edit-new-highlight" value="#ffe866">
+                            </div>
+
+                            <span class="edit-spacer"></span>
+
+                            <div class="edit-group">
+                                <button id="edit-undo-btn" class="edit-icon-btn" title="Undo (Ctrl+Z)" disabled><i
+                                        class="fas fa-undo"></i></button>
+                                <button id="edit-redo-btn" class="edit-icon-btn" title="Redo (Ctrl+Y)" disabled><i
+                                        class="fas fa-redo"></i></button>
+                            </div>
+
+                            <div class="edit-group">
+                                <button id="edit-zoom-out" class="edit-icon-btn" title="Zoom out"><i
+                                        class="fas fa-magnifying-glass-minus"></i></button>
+                                <span id="edit-zoom-level" class="edit-zoom-level">100%</span>
+                                <button id="edit-zoom-in" class="edit-icon-btn" title="Zoom in"><i
+                                        class="fas fa-magnifying-glass-plus"></i></button>
+                                <button id="edit-zoom-fit" class="edit-icon-btn" title="Fit width"><i
+                                        class="fas fa-left-right"></i></button>
+                            </div>
+
+                            <div class="edit-group">
+                                <button id="edit-prev-page" class="edit-icon-btn" title="Previous page"><i
+                                        class="fas fa-chevron-left"></i></button>
+                                <input type="number" id="edit-page-input" value="1" min="1" aria-label="Page number">
+                                <span class="edit-pagecount">/ <span id="edit-total-pages">0</span></span>
+                                <button id="edit-next-page" class="edit-icon-btn" title="Next page"><i
+                                        class="fas fa-chevron-right"></i></button>
+                            </div>
+
+                            <button id="edit-pages-toggle" class="edit-icon-btn" title="Page organiser"
+                                aria-expanded="false"><i class="fas fa-table-cells"></i></button>
+
+                            <button id="edit-save-btn" class="btn btn-primary edit-save"><i
+                                    class="fas fa-floppy-disk"></i> Save PDF</button>
+                        </div>
+
+                        <div class="edit-toolrow edit-hintrow">
+                            <i class="fas fa-circle-info"></i>
+                            <span id="edit-hint">Click an object to select it &mdash; drag to move, pull a handle to
+                                resize.</span>
+                        </div>
+                    </div>
+
+                    <!-- Editor body: pages panel | canvas | inspector -->
+                    <div id="edit-main" class="edit-main hidden">
+                        <aside id="edit-pages-panel" class="edit-pages-panel">
+                            <div class="edit-side-head"><i class="fas fa-table-cells"></i> Pages</div>
+                            <div id="edit-thumbs" class="edit-thumbs"></div>
+                        </aside>
+
+                        <div id="edit-workspace" class="edit-workspace"></div>
+
+                        <aside id="edit-inspector" class="edit-inspector">
+                            <div class="edit-side-head"><i class="fas fa-sliders"></i> Properties</div>
+
+                            <div id="edit-insp-empty" class="edit-insp-empty">
+                                <i class="fas fa-hand-pointer"></i>
+                                <p>Select something on the page to edit its properties.</p>
+                            </div>
+
+                            <div id="edit-insp-body" class="hidden">
+                                <div class="edit-insp-title" id="edit-insp-type">Text</div>
+
+                                <div class="edit-insp-grp hidden" id="edit-grp-text">
+                                    <label class="edit-insp-label" for="edit-font-family">Font</label>
+                                    <select id="edit-font-family">
+                                        <option value="Helvetica">Helvetica</option>
+                                        <option value="TimesRoman">Times</option>
+                                        <option value="Courier">Courier</option>
+                                    </select>
+                                    <div class="edit-insp-row">
+                                        <input type="number" id="edit-font-size" min="4" max="400" step="0.5"
+                                            value="16" aria-label="Font size">
+                                        <input type="color" id="edit-text-color" value="#111111"
+                                            aria-label="Text colour">
+                                        <button id="edit-bold" class="edit-chip" title="Bold"><b>B</b></button>
+                                        <button id="edit-italic" class="edit-chip" title="Italic"><i>I</i></button>
+                                    </div>
+                                    <div class="edit-insp-row">
+                                        <button class="edit-chip" data-align="left" title="Align left"><i
+                                                class="fas fa-align-left"></i></button>
+                                        <button class="edit-chip" data-align="center" title="Align centre"><i
+                                                class="fas fa-align-center"></i></button>
+                                        <button class="edit-chip" data-align="right" title="Align right"><i
+                                                class="fas fa-align-right"></i></button>
+                                    </div>
+                                </div>
+
+                                <div class="edit-insp-grp hidden" id="edit-grp-stroke">
+                                    <label class="edit-insp-label" for="edit-stroke-color">Stroke</label>
+                                    <div class="edit-insp-row">
+                                        <input type="color" id="edit-stroke-color" value="#ef4444"
+                                            aria-label="Stroke colour">
+                                        <input type="range" id="edit-stroke-width" min="1" max="14" step="1" value="2">
+                                        <span id="edit-stroke-width-val" class="edit-insp-val">2 pt</span>
+                                    </div>
+                                </div>
+
+                                <div class="edit-insp-grp hidden" id="edit-grp-fill">
+                                    <label class="edit-insp-label" for="edit-fill-color">Fill</label>
+                                    <div class="edit-insp-row">
+                                        <input type="color" id="edit-fill-color" value="#ffffff"
+                                            aria-label="Fill colour">
+                                        <label class="edit-insp-check"><input type="checkbox"
+                                                id="edit-fill-none"> none</label>
+                                    </div>
+                                </div>
+
+                                <div class="edit-insp-grp" id="edit-grp-opacity">
+                                    <label class="edit-insp-label" for="edit-opacity">Opacity</label>
+                                    <div class="edit-insp-row">
+                                        <input type="range" id="edit-opacity" min="0.05" max="1" step="0.05" value="1">
+                                        <span id="edit-opacity-val" class="edit-insp-val">100%</span>
+                                    </div>
+                                </div>
+
+                                <div class="edit-insp-grp hidden" id="edit-grp-rotate">
+                                    <label class="edit-insp-label" for="edit-rotation">Rotation</label>
+                                    <div class="edit-insp-row">
+                                        <input type="range" id="edit-rotation" min="-180" max="180" step="5" value="0">
+                                        <span id="edit-rotation-val" class="edit-insp-val">0&deg;</span>
+                                    </div>
+                                </div>
+
+                                <div class="edit-insp-grp">
+                                    <label class="edit-insp-label">Position &amp; size (pt)</label>
+                                    <div class="edit-insp-grid">
+                                        <label>X<input type="number" id="edit-ix" step="1"></label>
+                                        <label>Y<input type="number" id="edit-iy" step="1"></label>
+                                        <label>W<input type="number" id="edit-iw" step="1"></label>
+                                        <label>H<input type="number" id="edit-ih" step="1"></label>
+                                    </div>
+                                </div>
+
+                                <div class="edit-insp-grp edit-insp-actions">
+                                    <button id="edit-front" class="btn btn-sm btn-secondary" title="Bring to front"><i
+                                            class="fas fa-layer-group"></i> Front</button>
+                                    <button id="edit-back" class="btn btn-sm btn-secondary" title="Send to back"><i
+                                            class="fas fa-layer-group fa-flip-vertical"></i> Back</button>
+                                    <button id="edit-duplicate" class="btn btn-sm btn-secondary"
+                                        title="Duplicate (Ctrl+D)"><i class="fas fa-clone"></i> Copy</button>
+                                    <button id="edit-delete" class="btn btn-sm btn-danger" title="Delete (Del)"><i
+                                            class="fas fa-trash"></i> Delete</button>
+                                </div>
+                            </div>
+                        </aside>
+                    </div>
+
+                    <input type="file" id="edit-image-upload" accept="image/png,image/jpeg,image/jpg"
+                        style="display:none;">
+
+                    <!-- Signature capture -->
+                    <div id="edit-sig-modal" class="edit-sig-modal hidden" role="dialog" aria-modal="true"
+                        aria-label="Create a signature">
+                        <div class="edit-sig-box">
+                            <h4><i class="fas fa-signature"></i> Your signature</h4>
+                            <div class="edit-sig-tabs">
+                                <button class="edit-sig-tab active" data-sig-tab="draw">Draw</button>
+                                <button class="edit-sig-tab" data-sig-tab="type">Type</button>
+                            </div>
+                            <div class="edit-sig-type-row hidden" id="edit-sig-type-row">
+                                <input type="text" id="edit-sig-text" placeholder="Type your name">
+                                <select id="edit-sig-font">
+                                    <option value="'Segoe Script','Brush Script MT',cursive">Script</option>
+                                    <option value="'Outfit',sans-serif">Sans</option>
+                                    <option value="'Times New Roman',serif">Serif</option>
+                                </select>
+                            </div>
+                            <canvas id="edit-sig-canvas" class="edit-sig-canvas"></canvas>
+                            <div class="edit-sig-foot">
+                                <label>Ink <input type="color" id="edit-sig-color" value="#0b2447"></label>
+                                <span class="edit-spacer"></span>
+                                <button id="edit-sig-clear" class="btn btn-sm btn-secondary">Clear</button>
+                                <button id="edit-sig-cancel" class="btn btn-sm btn-secondary">Cancel</button>
+                                <button id="edit-sig-apply" class="btn btn-sm btn-primary">Insert</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </section>
 
             <!-- Shared Workspace for Single-Doc Tools (Split, Rotate, Convert, etc.) -->
@@ -1547,7 +1824,7 @@
             </div>
 
             <footer class="app-footer">
-                <p id="copyright">&copy; 2026 PDF Ninja Pro v1.7.1.</p>
+                <p id="copyright">&copy; 2026 PDF Ninja Pro v1.8.0.</p>
                 <div class="footer-links">
                     <a href="index.html">Home</a>
                     <span class="sep">·</span>
@@ -1636,7 +1913,8 @@
     <script src="js/watermark.js?v=1"></script>
     <script src="js/pagenum.js?v=1"></script>
     <script src="js/markdown.js?v=4"></script>
-    <script src="js/copyright.js?v=1.7.1"></script>
+    <script src="js/edit.js?v=1"></script>
+    <script src="js/copyright.js?v=1.8.0"></script>
 
     <!-- UI Interaction Script (Tab Switching) -->
     <script>
@@ -1667,7 +1945,7 @@
                     const workspace = document.getElementById('single-doc-workspace');
 
                     // Tools with their own self-contained UI (no shared workspace)
-                    const selfContainedTools = ['merge', 'rotate', 'reorder', 'background', 'delete', 'images-to-pdf', 'comment', 'convert', 'extract', 'scan', 'markdown', 'compress', 'ocr', 'password', 'unlock', 'watermark', 'pagenum'];
+                    const selfContainedTools = ['edit', 'merge', 'rotate', 'reorder', 'background', 'delete', 'images-to-pdf', 'comment', 'convert', 'extract', 'scan', 'markdown', 'compress', 'ocr', 'password', 'unlock', 'watermark', 'pagenum'];
 
                     // Toggle Workspace (Hide for self-contained tools, Show for others)
                     if (selfContainedTools.includes(targetId)) {
